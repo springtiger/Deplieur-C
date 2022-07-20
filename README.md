@@ -22,7 +22,7 @@ le premier ayant dans sa définition (120, 44),
 le second ayant dans sa définition (121, 120)
 et le dernier ayant dans sa définition (44, 121)
 
-On peut alors calculer pour chaque paire d'arêtes voisines leur coplanéité (càd si les faces sont coplanaires ou si elles doivent marquer un pli Montagne , coplanéité > 0, ou Vallée, coplanéité < 0).
+On peut alors calculer pour chaque paire d'arêtes voisines leur coplanarité (càd si les faces sont coplanaires ou si elles doivent marquer un pli Montagne , coplanarité > 0, ou Vallée, coplanarité < 0).
 
 Puis vient le dépliage proprement dit qui consiste en posant une première face ( par défaut la première), puis essayant d'y lier ses voisines, puis leurs voisines et ainsi de suite jusqu'à ce qu'il n'y ait plus de place sur la page ou qu'il n'y ait plus de faces à lier. Tant que toutes les faces ne sont pas posées, l'on continue sur une nouvelle page avec une nouvelle première face etc.
 
