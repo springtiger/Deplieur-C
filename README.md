@@ -3,6 +3,11 @@ Unfolds a 3d model into a multipage PDF pattern to build it with paper/cardboard
 
 Uses Cairo and math libraries, so I compile (gcc) with -lcairo -lm
 
+Déplie un modèle 3d en un fichier PDF multipage afin de le fabriquer en papier/carton
+
+Utilise les librairies Cairo et math, donc je compile (gss) avec -lcairo -lm
+
+
 ## Principe du dépliage d'un volume
 Le dépliage d'un volume c'est l'ensemble des étapes qui permettent d'obtenir à partir d'un volume, un gabarit 2d permettant de le reproduire.
 
