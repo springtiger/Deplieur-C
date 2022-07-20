@@ -1,13 +1,14 @@
 // depliage en C
 // v0
 // fait :
-//	- charger fichier .obj
-//  - extraire points et faces
-//	- trouver les voisins de chaque arête
-//  - calculer les coplaneités
-//  - demander le premier triangle
-//	- déplie toutes les faces possibles sur la page courante
-//  - export en PDF
+//	- charge fichier .obj
+//  - extrait points et faces
+//	- trouve les voisins de chaque arête
+//  - calcule les coplaneités
+//  - demande le fichier 2d(.obj)
+//	- demande l'échelle (1 = 100%)
+//  - demande le format de sortie (de 0 à 5 pour A0 à A5)
+//	- deplie dans un PDF avec autant de pages que nécessaire
 
 #define epsilon 0.0001
 #define max(a,b) (a>=b?a:b)
