@@ -144,21 +144,30 @@ struct sVector2d milieu (struct sVector2d p1, struct sVector2d p2) {
 	
 	return r;
 }
+/*function d2ize (p) {
+	x0 = p[0][0], y0 = p[0][1], z0 = p[0][2],
+	x1 = p[1][0], y1 = p[1][1], z1 = p[1][2],
+	x2 = p[2][0], y2 = p[2][1], z2 = p[2][2]
 
+	X0 = 0, Y0 = 0
+	X1 = sqrt((x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0) + (z1 - z0)*(z1 - z0)),
+	Y1 = 0
+	X2 = ((x1 - x0) * (x2 - x0) + (y1 - y0) * (y2 - y0) + (z1 - z0) * (z2 - z0)) / X1,
+	Y2 = sqrt((x2 - x0)*(x2 - x0) + (y2 - y0)*(y2 - y0) + (z2 - z0)*(z2 - z0) - X2*X2)
+
+	return [[X0, Y0], [X1, Y1], [X2, Y2]]
+}*/
 void d2ize (struct sVector3d p[3], struct sVector2d P[3]) {
-double
-	x0 = p[0].x, y0 = p[0].y, z0 = p[0].z,
-	x1 = p[1].x, y1 = p[1].y, z1 = p[1].z,
-	x2 = p[2].x, y2 = p[2].y, z2 = p[2].z;
-
-	P[0].x = 0;
-	P[0].y = 0;
-	P[1].x = sqrt((x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0) + (z1 - z0)*(z1 - z0));
-	P[1].y = 0;
-	P[2].x = ((x1 - x0) * (x2 - x0) + (y1 - y0) * (y2 - y0) + (z1 - z0) * (z2 - z0)) 
-						/ P[1].x;
-	P[2].y = sqrt((x2 - x0)*(x2 - x0) + (y2 - y0)*(y2 - y0) + (z2 - z0)*(z2 - z0) 
-						- P[2].x * P[2].x);
+	struct sVector3d
+		d1 = sVector3dSub(p[1], p[0]),
+		d2 = sVector3dSub(p[2], p[0]);
+		
+		P[0].x = 0;
+		P[0].y = 0;
+		P[1].x = sqrt((d1.x*d1.x) + (d1.y * d1.y) + (d1.z * d1.z));
+		P[1].y = 0;
+		P[2].x = ((d1.x*d2.x) + (d1.y*d2.y) + (d1.z*d2.z))/ P[1].x;
+		P[2].y = sqrt((d2.x*d2.x) + (d2.y*d2.y) + (d2.z*d2.z) - (P[2].x*P[2].x));
 }
 
 double isCoplanar (struct sVector3d t[3], struct sVector3d p) {
@@ -403,15 +412,12 @@ do {
 return n;
 }
 
-
-void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL)
-{
+void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL) {
 	if (typeL != L_PLI_C) { // pas de ligne si pli coplanaire
 		struct sCoul c;
 		static const double tiret[] = {10.0};
 		static const double tpoint[] = {8.0,2.0,2.0,2.0};
 
-		printf("faitLigne : %d\n", typeL);
 		if (typeL == L_COUPE) {
 			c = C_ROUGE;
 			cairo_set_dash(cr, tiret, 0, 0);
@@ -459,11 +465,13 @@ int main(void) {
 
   int nbV = 0;											// nb de points
   struct sVector3d* vertices = NULL;// tableau des points (3d)
-	double f[4];											// point courant
+	//double f[4];											// point courant
+	double f[3];											// point courant
   
   int nbF = 0;											// nb de faces
   int* faces0 = NULL;								// tableau des faces
-  int t[3];													// face courante
+  int t[4];													// face courante
+  int gc = 0;
     
   while ((tok = strtok_r(d, sep, &d))) {
 		strncpy(type, tok, 2);
@@ -481,6 +489,9 @@ int main(void) {
 			vertices[nbV] = v;
 			nbV++;
 		}
+		else if (strcmp(type, "g ") == 0) {	// GROUPE
+			gc++;
+		}
 		else if (strcmp(type, "f ") == 0) {	// FACE
 			char* fd = strdup(tok);
 			char* ftok;
@@ -497,18 +508,21 @@ int main(void) {
 					t[n++] = t0;
 				}
 			}
-			faces0 = (int*)realloc(faces0, (nbF+1)*3*sizeof(int));
-			for (int i = 0; i < 3; i++) {
-				faces0[nbF*3+i] = t[i];
+			t[3] = gc;
+			faces0 = (int*)realloc(faces0, (nbF+1)*4*sizeof(int));
+			for (int i = 0; i < 4; i++) {
+				//faces0[nbF*4+i] = t[i];
+				faces0[nbF*4+i] = t[i]-1;
 			}
 			nbF++;
 		}
 	}
 	free(tok);
 	
-	int faces[nbF][3], n = 0;
+	int faces[nbF][4];
+	int n = 0;
 	for (int i = 0; i < nbF; i++){
-		for (int j = 0; j < 3; j++){
+		for (int j = 0; j < 4; j++){
 			faces[i][j] = faces0[n++];
 		}
 	}
@@ -586,14 +600,12 @@ int main(void) {
 		{ 421,   595},	// A5
 	};
 
-	printf("Format A (0..5) :");
+	printf("Format A(0..5) :");
   int fc = 3;
   scanf("%d", &fc);
   
   struct sVector2d limitePage = sVector2dSub(formats[fc], marge);
 	
-	//float lt = 2; // largeur triangle
-
 	// nb elements
 	printf("%d points\n%d faces\n", nbV, nbF);
   
@@ -622,12 +634,12 @@ int main(void) {
 	int tc = 0; // triangle courant
 	//printf("1er triangle:");
 	//scanf("%d", &tc);
-	
 	int nbP = 0;
 	struct sLigne lignes[nbF *3];
 	int nbL = 0;
 
-do {	
+do {
+	gc = faces[tc][3];	
 	int nbTp =0;
 	int tcn = 0;
 	page[nbTp++] = tc;
@@ -637,7 +649,7 @@ do {
 		for (int vi =0; vi < 3; vi++){
 			struct sVoisin v = voisins[tc][vi];
 			int vc = v.nF;
-			ok = dispo[vc];
+			ok = dispo[vc] && (faces[vc][3] == gc);
 			if (ok) {
 				for (int i = 0; (i < nbTp) && ok; i++){
 					if (page[i] == vc) ok = false;
@@ -747,12 +759,23 @@ do {
 	int lc = 0;
 	int nA;
 	int typeL;
+	char* txtPage = NULL;
+
 	for (int i = 0; i < nbL; i++){
 		struct sLigne l = lignes[i];
 		if (l.id > -1) {
 			if (lc != l.nP) {
 				lc = l.nP;
+				txtPage = (char *)malloc(20 * sizeof(char));
+				cairo_move_to(cr, 0, limitePage.y-20);
+				sprintf(txtPage, "page %d (%d)", lc, faces[l.n1][3]);
+				//printf("page : %d\n", lc);
+				cairo_set_source_rgb(cr, C_NOIR.r, C_NOIR.v, C_NOIR.b);
+				cairo_show_text(cr, txtPage);
+				free(txtPage);
+
 				cairo_show_page(cr);
+
 			}	
 			if (l.nb == 1)
 				typeL = L_COUPE;
@@ -763,7 +786,6 @@ do {
 				} else {
 					typeL = c < 0 ? L_PLI_M : L_PLI_V;
 				}
-				printf("%d : %f\n", typeL, c);
 			}
 			if (typeL != L_PLI_C)
 				faitLigne(cr, l.p1, l.p2, typeL);
@@ -787,6 +809,13 @@ do {
 		}
 	}
 	
+	txtPage = (char *)malloc(20 * sizeof(char));
+	cairo_move_to(cr, 0, limitePage.y-20);
+	sprintf(txtPage, "page %d (%d)", lc+1, faces[lignes[nbL-1].n1][3]);
+	cairo_set_source_rgb(cr, C_NOIR.r, C_NOIR.v, C_NOIR.b);
+	cairo_show_text(cr, txtPage);
+	free(txtPage);
+
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 
