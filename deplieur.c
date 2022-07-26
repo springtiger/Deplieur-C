@@ -9,6 +9,11 @@
 //	- demande l'échelle (1 = 100%)
 //  - demande le format de sortie (de 0 à 5 pour A0 à A5)
 //	- deplie dans un PDF avec autant de pages que nécessaire
+//	- traits de coupe en rouge
+//	- les plis montagne en - marron, plis vallée en -. vert
+//	- numérote uniquement les paires d'arêtes à relier
+//	- paires d'arêtes internes à la pièce en bleu
+//	- paires d'arêtes entre deux pièces en noir
 
 #define epsilon 0.0001
 #define max(a,b) (a>=b?a:b)
@@ -39,17 +44,17 @@ struct sVector2d { // coordonnées 2d
 	double x, y;
 };
 
-struct sCop {
+struct sCop { // coplanarité
 	int nF, nV;	// n° face et voisin
-	double cop; // valeur de la coplanéité (0 = coplanaire)
+	double cop; // valeur de la coplanarité (0 = coplanaire)
 };
 
-struct sVoisin {
+struct sVoisin { // voisinage
 	int nF;		// n° de la face liée
 	int idx;	// index du 1er point lié
 };
 
-struct sLigne  {
+struct sLigne  { // ligne d'affichage
 	int id;
 	struct sVector2d p1, p2; // points (p1 : petit, p2 : grand)
 	int n1, i1; // relié à triangle + index (petit)
@@ -58,23 +63,34 @@ struct sLigne  {
 	int nP;		// id de la page
 };
 
-struct sNAff	{
+struct sNAff	{	// numérotation des paires d'arêtes
 	int nMin; // petit n°
 	int nMax; // grand n°
 	int a;	// Affichage
 };
 
-struct sCoul {
+struct sCoul {	// couleurs
 	double r, v, b;
 	};
 	
 const struct sCoul 
-	C_NOIR	= {0,0,0},
-	C_ROUGE	= {1,0,0},
-	C_VERT	= {0,1,0},
-	C_BLEU	= {0,0,1},
-	C_MARRON= {0.501960784313725, 0.0, 0.0};
+	C_NOIR	= {0, 0, 0},
+	C_ROUGE	= {1, 0, 0},
+	C_VERT	= {0, 1, 0},
+	C_BLEU	= {0, 0, 1},
+	C_MARRON= {0.5, 0, 0};
 
+struct sDepliage {
+	int page;
+	int face;
+};
+
+struct sAN {
+	int n;
+	struct sVector2d p1, p2;
+};
+
+// DEFINITIONS
 struct sLigne sLigneNew (int iPage, int id, struct sVector2d p1, struct sVector2d p2, int n1, int i1, int n2, int i2) {
 	struct sLigne l;
 	
@@ -91,7 +107,6 @@ struct sLigne sLigneNew (int iPage, int id, struct sVector2d p1, struct sVector2
 	return l;
 }
 
-// DEFINITIONS
 struct sVector2d sVector2dAdd (struct sVector2d v1, struct sVector2d v2) {
 	struct sVector2d r;
 	r.x = v1.x + v2.x;
@@ -144,19 +159,7 @@ struct sVector2d milieu (struct sVector2d p1, struct sVector2d p2) {
 	
 	return r;
 }
-/*function d2ize (p) {
-	x0 = p[0][0], y0 = p[0][1], z0 = p[0][2],
-	x1 = p[1][0], y1 = p[1][1], z1 = p[1][2],
-	x2 = p[2][0], y2 = p[2][1], z2 = p[2][2]
 
-	X0 = 0, Y0 = 0
-	X1 = sqrt((x1 - x0)*(x1 - x0) + (y1 - y0)*(y1 - y0) + (z1 - z0)*(z1 - z0)),
-	Y1 = 0
-	X2 = ((x1 - x0) * (x2 - x0) + (y1 - y0) * (y2 - y0) + (z1 - z0) * (z2 - z0)) / X1,
-	Y2 = sqrt((x2 - x0)*(x2 - x0) + (y2 - y0)*(y2 - y0) + (z2 - z0)*(z2 - z0) - X2*X2)
-
-	return [[X0, Y0], [X1, Y1], [X2, Y2]]
-}*/
 void d2ize (struct sVector3d p[3], struct sVector2d P[3]) {
 	struct sVector3d
 		d1 = sVector3dSub(p[1], p[0]),
@@ -241,10 +244,6 @@ struct sVector2d rotation (struct sVector2d c, struct sVector2d p, double angle)
 		
 	return r;
 }
-
-/*function direction (p1, p2) {
-	return Math.atan2(p2[1] - p1[1], p2[0] - p1[0])
-}*/
 
 double angle (struct sVector2d p1, struct sVector2d p2) {
 	//double r = atan2(p1.y - p2.y, p1.x - p2.x);
@@ -379,6 +378,19 @@ char *litFichierTexte (const char *nomFichier) {
 	return texte;
 }
 
+void afficheNumsPage(cairo_t *cr, struct sAN *lAN, int nbAN) {					
+	for (int iAN = 0; iAN < nbAN; iAN++){
+		struct sAN lANc = lAN[iAN];
+		struct sCoul lC;
+		if ( ((iAN > 0) 			&& (lANc.n == lAN[iAN-1].n))
+			|| ((iAN < nbAN-1) && (lANc.n == lAN[iAN+1].n)))
+			lC = C_BLEU;
+		else
+			lC = C_NOIR;
+		afficheNum(cr, lANc.n, lANc.p1, lANc.p2, lC);
+	}
+}
+
 void calcBoiteEnglobante(struct sVector2d b[2], struct sVector2d *pts, int nbP) {
 	// calcul de la boite englobante
 	b[0] = (struct sVector2d) {10000,10000};
@@ -437,12 +449,37 @@ void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL)
 	}
 }
 
+void calculeVoisinage(int f[][4], int n, struct sVoisin v[][3]) {
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < 3; j++) {		
+			int vi = 0;
+			bool ok = false;
+			do {
+				if (vi != i) {
+					for (int k = 0; (k < 3) && (!ok); k++) {
+						if ( (f[vi][k] == f[i][suiv(j)]) 
+							&& (f[vi][suiv(k)] == f[i][j])) {
+							v[i][j]= sVoisinNew(vi, suiv(k));
+							ok = true;
+						}
+					}
+					if (!ok)
+						vi++;
+				} else
+					vi++;
+			} while ((vi < n) && (!ok));
+		}
+	}
+}
+
+
 int main(void) {
-	char OBJ[32];
+	char OBJ[32] = "bb";
 	printf("Nom fichier :");
 	scanf("%s", OBJ);
-	puts("");
+	//puts("");
 
+	//float ech = 2.0;
 	float ech;
 	printf("Echelle :");
 	scanf("%f", &ech);
@@ -465,14 +502,13 @@ int main(void) {
 
   int nbV = 0;											// nb de points
   struct sVector3d* vertices = NULL;// tableau des points (3d)
-	//double f[4];											// point courant
 	double f[3];											// point courant
   
   int nbF = 0;											// nb de faces
   int* faces0 = NULL;								// tableau des faces
   int t[4];													// face courante
   int gc = 0;
-    
+  
   while ((tok = strtok_r(d, sep, &d))) {
 		strncpy(type, tok, 2);
 		if (strcmp(type, "v ") == 0) {			// POINT (vertex)
@@ -511,7 +547,6 @@ int main(void) {
 			t[3] = gc;
 			faces0 = (int*)realloc(faces0, (nbF+1)*4*sizeof(int));
 			for (int i = 0; i < 4; i++) {
-				//faces0[nbF*4+i] = t[i];
 				faces0[nbF*4+i] = t[i]-1;
 			}
 			nbF++;
@@ -530,31 +565,11 @@ int main(void) {
 	
 	// VOISINS
 	struct sVoisin voisins[nbF][3];
-	for (int i = 0; i < nbF; i++) {
-		for (int j = 0; j < 3; j++) {		
-			int vi = 0;
-			bool ok = false;
-			do {
-				if (vi != i) {
-					for (int k = 0; (k < 3) && (!ok); k++) {
-						if ( (faces[vi][k] == faces[i][suiv(j)]) 
-							&& (faces[vi][suiv(k)] == faces[i][j])) {
-							voisins[i][j]= sVoisinNew(vi, suiv(k));
-							ok = true;
-						}
-					}
-					if (!ok)
-						vi++;
-				} else
-					vi++;
-			} while ((vi < nbF) && (!ok));
-		}
-	}
-	
+	calculeVoisinage(faces, nbF, voisins);
+		
 	// V3D V2D
 	struct sVector3d v3d[nbF][3];
 	struct sVector2d v2d[nbF][3];
-	
 	for (int i = 0; i < nbF; i++) {
 		for (int j = 0; j < 3; j++) {
 			v3d[i][j] = vertices[faces[i][j]];
@@ -564,7 +579,6 @@ int main(void) {
 	free(vertices);
 	
 	// estCOP
-	// estCop < 0 ? "maroon" : "green" : null
 	struct sCop tCop[nbF*3];
 	int nbCop = 0;
 	for (int i = 0; i < nbF; i++){
@@ -601,7 +615,8 @@ int main(void) {
 	};
 
 	printf("Format A(0..5) :");
-  int fc = 3;
+  //int fc = 4;
+  int fc;
   scanf("%d", &fc);
   
   struct sVector2d limitePage = sVector2dSub(formats[fc], marge);
@@ -630,10 +645,15 @@ int main(void) {
 	int nAff = 0;
 
 	int page[nbF];
+	struct sDepliage sD[nbF]; // depliage
+	int nbD = 0; // nb de faces dépliées
 	
-	int tc = 0; // triangle courant
-	//printf("1er triangle:");
-	//scanf("%d", &tc);
+	//int tc = 0; // triangle courant
+	//int tc = 35; // triangle courant
+	int tc; // triangle courant
+	printf("1er triangle:");
+	scanf("%d", &tc);
+	
 	int nbP = 0;
 	struct sLigne lignes[nbF *3];
 	int nbL = 0;
@@ -643,6 +663,8 @@ do {
 	int nbTp =0;
 	int tcn = 0;
 	page[nbTp++] = tc;
+	struct sDepliage sdC = {nbP, tc};
+	sD[nbD++] = sdC;
 	dispo[tc] = false;
 	bool ok;
 	do {
@@ -688,6 +710,8 @@ do {
 				// 5°) OK
 				if (ok) {
 					page[nbTp++] = vc;
+					struct sDepliage sdC = {nbP, vc};
+					sD[nbD++] = sdC;
 					dispo[vc] = false;
 				}
 			}
@@ -701,7 +725,7 @@ do {
 		else
 			ok = false;
 	} while (ok);
-
+	
 	struct sVector2d tmp[nbTp*3];
 	for (int i = 0, k = 0; i < nbTp; i++){
 		for (int j = 0; j < 3; j++){
@@ -761,6 +785,9 @@ do {
 	int typeL;
 	char* txtPage = NULL;
 
+	struct sAN lAN[nbF];
+	int nbAN = 0;
+	
 	for (int i = 0; i < nbL; i++){
 		struct sLigne l = lignes[i];
 		if (l.id > -1) {
@@ -773,9 +800,11 @@ do {
 				cairo_set_source_rgb(cr, C_NOIR.r, C_NOIR.v, C_NOIR.b);
 				cairo_show_text(cr, txtPage);
 				free(txtPage);
-
+				
+				if (nbAN > 0)
+					afficheNumsPage(cr, lAN, nbAN);
+				nbAN = 0;
 				cairo_show_page(cr);
-
 			}	
 			if (l.nb == 1)
 				typeL = L_COUPE;
@@ -804,7 +833,8 @@ do {
 					lSNA[nAff++] = cleN;
 					qsort(lSNA, nAff, sizeof(struct sNAff), compAff);
 				}
-				afficheNum(cr, nA, l.p1, l.p2, C_NOIR);
+				struct sAN sAN0 = {nA, l.p1, l.p2};
+				lAN[nbAN++] = sAN0;
 			}
 		}
 	}
@@ -812,9 +842,16 @@ do {
 	txtPage = (char *)malloc(20 * sizeof(char));
 	cairo_move_to(cr, 0, limitePage.y-20);
 	sprintf(txtPage, "page %d (%d)", lc+1, faces[lignes[nbL-1].n1][3]);
+	printf("pages: %s\n", txtPage);
 	cairo_set_source_rgb(cr, C_NOIR.r, C_NOIR.v, C_NOIR.b);
 	cairo_show_text(cr, txtPage);
 	free(txtPage);
+	
+	if (nbAN > 0)
+		afficheNumsPage(cr, lAN, nbAN);
+	/*for (int i = 0; i < nbD; i++) {
+		printf("%d\t%d\n", sD[i].page, sD[i].face);
+	}*/
 
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
