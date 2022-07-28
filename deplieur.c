@@ -14,6 +14,7 @@
 //	- numérote uniquement les paires d'arêtes à relier
 //	- paires d'arêtes internes à la pièce en bleu
 //	- paires d'arêtes entre deux pièces en noir
+//	- sauve les données dans un fichier .dep
 
 #define epsilon 0.0001
 #define max(a,b) (a>=b?a:b)
@@ -83,6 +84,7 @@ const struct sCoul
 struct sDepliage {
 	int page;
 	int face;
+	int orig;
 };
 
 struct sAN {
@@ -331,7 +333,7 @@ bool overlap (struct sVector2d *t1, struct sVector2d *t2) {
 void afficheNum(cairo_t *cr, 
 	int num, 
 	struct sVector2d p1, 
-	struct sVector2d p2, 
+	struct sVector2d p2,
 	struct sCoul c) {
   
   cairo_text_extents_t te;
@@ -346,9 +348,11 @@ void afficheNum(cairo_t *cr,
 	cairo_text_extents (cr, ch, &te);
   nx = -te.width / 2.0;
   ny = fheight / 2;
-  a = angle(p1, p2) - M_PI;
 	cairo_translate(cr, m.x, m.y);
-	cairo_rotate(cr, a);
+  if (!eq(p1, p2)) {
+  	a = angle(p1, p2) - M_PI;
+		cairo_rotate(cr, a);
+	}
 	cairo_translate(cr, nx, ny);
 	cairo_move_to(cr, 0,0);
 	cairo_show_text(cr, ch);
@@ -378,7 +382,7 @@ char *litFichierTexte (const char *nomFichier) {
 	return texte;
 }
 
-void afficheNumsPage(cairo_t *cr, struct sAN *lAN, int nbAN) {					
+void afficheNumsPage(cairo_t *cr, struct sAN *lAN, int nbAN, struct sVector2d v[][3]) {
 	for (int iAN = 0; iAN < nbAN; iAN++){
 		struct sAN lANc = lAN[iAN];
 		struct sCoul lC;
@@ -472,14 +476,37 @@ void calculeVoisinage(int f[][4], int n, struct sVoisin v[][3]) {
 	}
 }
 
+void calculeCop(int n, struct sVoisin voisins[][3], struct sCop* tCop, struct sVector3d v3d[][3]) {
+	int nbCop = 0;
+	for (int i = 0; i < n; i++){
+		for (int j = 0; j < 3; j++){
+			int nV = voisins[i][j].nF;
+			struct sVector3d p;
+			
+			if (eq3(v3d[i], v3d[nV], 0)) {
+				p = v3d[nV][0];
+			} 
+			else if (eq3(v3d[i], v3d[nV], 1)) {
+				p =  v3d[nV][1];
+			}
+			else {
+				p =  v3d[nV][2];
+			}
+				
+			double c = isCoplanar(v3d[i], p);
+			tCop[nbCop].cop = c;
+			tCop[nbCop].nF =  i;
+			tCop[nbCop].nV = nV;
+			nbCop++;
+		}
+	}
+}
 
 int main(void) {
 	char OBJ[32] = "bb";
 	printf("Nom fichier :");
 	scanf("%s", OBJ);
-	//puts("");
 
-	//float ech = 2.0;
 	float ech;
 	printf("Echelle :");
 	scanf("%f", &ech);
@@ -491,13 +518,11 @@ int main(void) {
 		printf("Erreur Lecture\n");
 		return 1;
 	}
-				
 	// extrait les lignes
   char* d = strdup(donneesOBJ);
   free(donneesOBJ);
   const char *sep = "\n";
   char* tok;
-  
 	char type[2];
 
   int nbV = 0;											// nb de points
@@ -580,29 +605,7 @@ int main(void) {
 	
 	// estCOP
 	struct sCop tCop[nbF*3];
-	int nbCop = 0;
-	for (int i = 0; i < nbF; i++){
-		for (int j = 0; j < 3; j++){
-			int nV = voisins[i][j].nF;
-			struct sVector3d p;
-			
-			if (eq3(v3d[i], v3d[nV], 0)) {
-				p = v3d[nV][0];
-			} 
-			else if (eq3(v3d[i], v3d[nV], 1)) {
-				p =  v3d[nV][1];
-			}
-			else {
-				p =  v3d[nV][2];
-			}
-				
-			double c = isCoplanar(v3d[i], p);
-			tCop[nbCop].cop = c;
-			tCop[nbCop].nF =  i;
-			tCop[nbCop].nV = nV;
-			nbCop++;
-		}
-	}
+	calculeCop(nbF, voisins, tCop, v3d);
 	
   struct sVector2d marge = {10, 10};
   struct sVector2d formats[6] = {
@@ -615,7 +618,6 @@ int main(void) {
 	};
 
 	printf("Format A(0..5) :");
-  //int fc = 4;
   int fc;
   scanf("%d", &fc);
   
@@ -648,12 +650,11 @@ int main(void) {
 	struct sDepliage sD[nbF]; // depliage
 	int nbD = 0; // nb de faces dépliées
 	
-	//int tc = 0; // triangle courant
-	//int tc = 35; // triangle courant
-	int tc; // triangle courant
+	int tc0; // triangle courant
 	printf("1er triangle:");
-	scanf("%d", &tc);
+	scanf("%d", &tc0);
 	
+	int tc = tc0;
 	int nbP = 0;
 	struct sLigne lignes[nbF *3];
 	int nbL = 0;
@@ -663,7 +664,7 @@ do {
 	int nbTp =0;
 	int tcn = 0;
 	page[nbTp++] = tc;
-	struct sDepliage sdC = {nbP, tc};
+	struct sDepliage sdC = {nbP, tc, -1};
 	sD[nbD++] = sdC;
 	dispo[tc] = false;
 	bool ok;
@@ -710,7 +711,7 @@ do {
 				// 5°) OK
 				if (ok) {
 					page[nbTp++] = vc;
-					struct sDepliage sdC = {nbP, vc};
+					struct sDepliage sdC = {nbP, vc, tc};
 					sD[nbD++] = sdC;
 					dispo[vc] = false;
 				}
@@ -779,7 +780,40 @@ do {
 
 	qsort(lSNA, nAff, sizeof(struct sNAff), compAff);
 	qsort(lignes, nbL, sizeof(struct sLigne), compPg);
-
+	
+	for (int i = 0; i < nbD; i++) {
+		printf("%d : %d->%d\n", sD[i].page, sD[i].orig, sD[i].face);
+	}
+	
+	// sauve les données
+	char * nomFichierDonnees = "donnees.dep";
+	FILE * fichierDonnees;
+	int rc;
+	
+	fichierDonnees = fopen(nomFichierDonnees, "w");
+	if (fichierDonnees == NULL) {
+		printf("Impossible de sauvegarder les données\n");
+		exit (0);
+	}
+	
+	fprintf(fichierDonnees, "%s\n", OBJ);
+	fprintf(fichierDonnees, "%5.2lf\n", ech);
+	fprintf(fichierDonnees, "%2d\n", fc);
+	fprintf(fichierDonnees, "%4d\n", tc0);
+	for (int i = 0; i < nbD; i++) {
+		char * buf = (char*)calloc(37, sizeof(char));
+		//sprintf(buf, "%4d %4d %4d\n", sD[i].page, sD[i].orig, sD[i].face);
+		fprintf(fichierDonnees, "%4d %4d %4d\n", sD[i].page, sD[i].orig, sD[i].face);
+		//fputs(buf, fichierDonnees);
+		free(buf);
+	}
+	rc = fclose(fichierDonnees);
+	if (rc == EOF ) {
+		fprintf(stderr, "Impossible de fermer le fichier\n");
+		printf("Impossible de fermer le fichier\n");
+		exit (-1);
+	}
+	
 	int lc = 0;
 	int nA;
 	int typeL;
@@ -787,6 +821,7 @@ do {
 
 	struct sAN lAN[nbF];
 	int nbAN = 0;
+	int ppc = 0;
 	
 	for (int i = 0; i < nbL; i++){
 		struct sLigne l = lignes[i];
@@ -796,15 +831,23 @@ do {
 				txtPage = (char *)malloc(20 * sizeof(char));
 				cairo_move_to(cr, 0, limitePage.y-20);
 				sprintf(txtPage, "page %d (%d)", lc, faces[l.n1][3]);
-				//printf("page : %d\n", lc);
 				cairo_set_source_rgb(cr, C_NOIR.r, C_NOIR.v, C_NOIR.b);
 				cairo_show_text(cr, txtPage);
 				free(txtPage);
 				
-				if (nbAN > 0)
-					afficheNumsPage(cr, lAN, nbAN);
+				if (nbAN > 0) {
+					afficheNumsPage(cr, lAN, nbAN, v2d);
+					for (int sdi = 0; sdi < nbD; sdi++) {
+						struct sDepliage sdt = sD[sdi];
+						if (sdt.page == ppc) {
+							struct sVector2d m = centroid(v2d[sdt.face]);
+							afficheNum(cr, sdt.face, m, m, C_VERT);
+						}
+					}
+				}
 				nbAN = 0;
 				cairo_show_page(cr);
+				ppc++;
 			}	
 			if (l.nb == 1)
 				typeL = L_COUPE;
@@ -847,12 +890,17 @@ do {
 	cairo_show_text(cr, txtPage);
 	free(txtPage);
 	
-	if (nbAN > 0)
-		afficheNumsPage(cr, lAN, nbAN);
-	/*for (int i = 0; i < nbD; i++) {
-		printf("%d\t%d\n", sD[i].page, sD[i].face);
-	}*/
-
+	if (nbAN > 0) {
+		afficheNumsPage(cr, lAN, nbAN, v2d);
+		
+		for (int sdi = 0; sdi < nbD; sdi++) {
+			struct sDepliage sdt = sD[sdi];
+			if (sdt.page == ppc) {
+				struct sVector2d m = centroid(v2d[sdt.face]);
+				afficheNum(cr, sdt.face, m, m, C_VERT);
+			}
+		}
+	}
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 
