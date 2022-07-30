@@ -170,6 +170,17 @@ int prec (int n) {
 	return n > 0 ? n -1 : 2;
 }
 
+double diff (struct sVector2d p1, struct sVector2d p2) {
+	double r;
+	
+	if (eqd(p1.x, p2.x))
+		r = p2.y - p1.y;
+	else
+		r = p2.x - p1.x;
+		
+	return r;
+}
+
 double distance2d (struct sVector2d p1, struct sVector2d p2) {
 	struct sVector2d d = sVector2dSub(p2, p1);
 	return sqrt((d.x * d.x) + (d.y * d.y));
@@ -352,7 +363,7 @@ void afficheNumsPage(cairo_t *cr, struct sAN *lAN, int nbAN, struct sVector2d v[
 		struct sCoul lC;
 		if ( ((iAN > 0) 			&& (lANc.n == lAN[iAN-1].n))
 			|| ((iAN < nbAN-1) && (lANc.n == lAN[iAN+1].n)))
-			lC = C_BLEU;
+			lC = C_VERT;
 		else
 			lC = C_NOIR;
 		afficheNum(cr, lANc.n, lANc.p1, lANc.p2, lC);
@@ -463,5 +474,54 @@ void calculeCop(int n, struct sVoisin voisins[][3], struct sCop* tCop, struct sV
 			tCop[nbCop].nV = nV;
 			nbCop++;
 		}
+	}
+}
+
+int sauveDonnees(char *OBJ, double ech, int fc, int tc0, struct sDepliage * sD, int nbD) {
+	char * nomFichierDonnees = "donnees.dep";
+	FILE * fichierDonnees;
+	int rc;
+
+	fichierDonnees = fopen(nomFichierDonnees, "w");
+	if (fichierDonnees == NULL) {
+		printf("Impossible de sauvegarder les données\n");
+		return -1;
+	}
+
+	fprintf(fichierDonnees, "%s\n", OBJ);
+	fprintf(fichierDonnees, "%5.2lf\n", ech);
+	fprintf(fichierDonnees, "%2d\n", fc);
+	fprintf(fichierDonnees, "%4d\n", tc0);
+	for (int i = 0; i < nbD; i++) {
+		fprintf(fichierDonnees, "%4d %4d\n", sD[i].orig, sD[i].face);
+	}
+	rc = fclose(fichierDonnees);
+	if (rc == EOF ) {
+		fprintf(stderr, "Impossible de fermer le fichier\n");
+		printf("Impossible de fermer le fichier\n");
+		return -1;
+	}
+	
+	return 0;
+}
+
+void supprimeDoublons(struct sLigne * lignes, int nbL) {
+	// tri
+	qsort(lignes, nbL, sizeof(struct sLigne), comp);
+	// renum
+	for (int i = 0; i < nbL; i++)
+		lignes[i].id = i;
+	// suppression doublons
+	int dOK = 0;
+	for (int i = 1; i < nbL; i++){
+		if ((lignes[dOK].nP == lignes[i].nP) 
+		&& ((eq(lignes[dOK].p1, lignes[i].p1) && eq(lignes[dOK].p2, lignes[i].p2))
+		    || (eq(lignes[dOK].p1, lignes[i].p2) && eq(lignes[dOK].p2, lignes[i].p1)))
+		) {
+			lignes[i].id = -1;
+			lignes[dOK].nb++;		
+		}
+		else
+			dOK = i;
 	}
 }

@@ -34,15 +34,67 @@
 #include <cairo/cairo-pdf.h>
 #include "deputils.c"
 
+
+struct sVector2d vPetit(struct sVector2d p1, struct sVector2d p2) {
+	struct sVector2d r;
+	r.x = min(p1.x, p2.x);
+	r.y = min(p1.y, p2.y);
+
+	return r;
+}
+
 int main(void) {
-	char OBJ[32] = "bb";
-	printf("Nom fichier :");
-	scanf("%s", OBJ);
+// charge données
+	char * nomFichierDonnees = "donnees.dep";
+	FILE * fd;
+	int rc;
 
-	float ech;
-	printf("Echelle :");
-	scanf("%f", &ech);
+	fd = fopen(nomFichierDonnees, "r");
+	if (fd == NULL) {
+		return -1;
+	}
 
+	char OBJ[50];
+	double ech;
+	int fc;
+	int tc0;
+	
+	fscanf(fd, "%s", OBJ);
+	fscanf(fd, "%lf", &ech);
+	fscanf(fd, "%2d", &fc);
+	fscanf(fd, "%4d", &tc0);
+	int nbD = 0;
+	struct sDepliage * sD = NULL;
+	struct sDepliage sD0;
+	
+  int d0;
+  int de[2];
+  int i = 0;
+  while (fscanf(fd, "%d", &d0) == 1) {
+ 		de[i] = d0;
+ 		if (i == 1) {
+			sD0.orig = de[0];
+			sD0.face = de[1];
+			sD = (struct sDepliage*) realloc(sD, sizeof(struct sDepliage)*(nbD+1));
+			sD[nbD] = sD0;
+			nbD++;
+			i = 0;
+			puts("");
+		} else {
+			i++;
+		}
+	}
+	rc = fclose(fd);
+	if (rc == EOF) {
+		return -1;
+	}
+	
+	
+	
+	printf("Nom fichier :%s\n", OBJ);
+	printf("Echelle : %lf\n", ech);
+	printf("format page : A%d\n", fc);
+	printf("1er triangle : %d\n", tc0);
 	printf("--------- Chargement : %s ---------\n", OBJ);
 	char* donneesOBJ = litFichierTexte(OBJ);
 	if (donneesOBJ == NULL)
@@ -139,7 +191,6 @@ int main(void) {
 	struct sCop tCop[nbF*3];
 	calculeCop(nbF, voisins, tCop, v3d);
 	
-  struct sVector2d marge = {10, 10};
   struct sVector2d formats[6] = {
 		{2380,	3368},	// A0
 		{1684,	2380},	// A1
@@ -148,11 +199,7 @@ int main(void) {
 		{ 595,   842},	// A4
 		{ 421,   595},	// A5
 	};
-
-	printf("Format A(0..5) :");
-  int fc;
-  scanf("%d", &fc);
-  
+  struct sVector2d marge = {10, 10};
   struct sVector2d limitePage = sVector2dSub(formats[fc], marge);
 	
 	// nb elements
@@ -164,7 +211,7 @@ int main(void) {
   cairo_surface_t *surface;
   cairo_t *cr;
 
-  surface = cairo_pdf_surface_create("output.pdf", formats[fc].x, formats[fc].y);
+  surface = cairo_pdf_surface_create("affiche.pdf", formats[fc].x, formats[fc].y);
   cr = cairo_create(surface);
   
   cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
@@ -172,131 +219,68 @@ int main(void) {
   cairo_set_font_size (cr, 11.0);
   cairo_set_line_width(cr, 1);
 
-	bool dispo[nbF];
-	for (int i = 0; i < nbF; i++)dispo[i] = true;
-	
 	struct sNAff lSNA [nbF*3];
 	int nAff = 0;
 
-	int page[nbF];
-	struct sDepliage sD[nbF]; // depliage
-	int nbD = 0; // nb de faces dépliées
-	
-	int tc0; // triangle courant
-	printf("1er triangle:");
-	scanf("%d", &tc0);
-	
-	int tc = tc0;
-	int nbP = 0;
+	int nbP = -1;
+	struct sVector2d *vMin = NULL;
 	struct sLigne lignes[nbF *3];
 	int nbL = 0;
-
-do {
-	gc = faces[tc][3];	
-	int nbTp =0;
-	int tcn = 0;
-	page[nbTp++] = tc;
-	struct sDepliage sdC = {nbP, tc, -1};
-	sD[nbD++] = sdC;
-	dispo[tc] = false;
-	bool ok;
-	do {
-		for (int vi =0; vi < 3; vi++){
+	
+	for (i = 0; i < nbD; i++) {
+		if (sD[i].orig == -1) {
+			nbP++;
+			int f = sD[i].face;
+			vMin = (struct sVector2d*) realloc(vMin, sizeof(struct sVector2d) * (nbP+1));
+			vMin[nbP] = vPetit(v2d[f][0], vPetit(v2d[f][1],v2d[f][2]));
+		}
+		sD[i].page = nbP;
+		
+		if (sD[i].orig > -1) {
+			int tc = sD[i].orig;
+			int vc = sD[i].face;
+			int vi =	voisins[tc][0].nF == vc ? 0 :
+								voisins[tc][1].nF == vc ? 1 : 2;
 			struct sVoisin v = voisins[tc][vi];
-			int vc = v.nF;
-			ok = dispo[vc] && (faces[vc][3] == gc);
-			if (ok) {
-				for (int i = 0; (i < nbTp) && ok; i++){
-					if (page[i] == vc) ok = false;
-				}
-			}
-			if (ok) {
-				// 1°) rapproche v2d[vc] de v2d[tc]
-				struct sVector2d deltaV = sVector2dSub(v2d[tc][vi], v2d[vc][v.idx]);
-				for (int i = 0; i < 3; i++)
-					v2d[vc][i] = sVector2dAdd(v2d[vc][i], deltaV);
-				// 2°) tourne v2d[vc]
-				double a = calcAngle(v2d[tc][vi], v2d[tc][suiv(vi)], v2d[vc][prec(v.idx)]);
-				for (int i = 0; i < 3; i++)
-					v2d[vc][i] = rotation(v2d[tc][vi], v2d[vc][i], a);
-				// 3°) vérifie qu'ajouter v2d[vc] à la pièce tient dans la page
-				int nbTV = (nbTp+1) * 3;
-				struct sVector2d tmp[nbTV];
-				for (int i = 0; i < nbTp; i++){
-					for (int j = 0; j < 3; j++)
-						tmp[i*3+j] = v2d[page[i]][j];
-				}
-				for (int j = 0; j < 3; j++)
-					tmp[nbTp*3 +j] = v2d[vc][j];
-				struct sVector2d vb[2];
-				calcBoiteEnglobante(vb, tmp, nbTV);
-				struct sVector2d dV = sVector2dSub(vb[1], vb[0]);
-				if ((dV.x > limitePage.x) || (dV.y > limitePage.y))
-					ok = false;
-				// 4°) vérifie que v2d[vc] n'est pas en collision avec la pièce
-				if (ok) {
-					for (int i = 0; (i < nbTp) && ok; i++) {
-						if (overlap(v2d[page[i]], v2d[vc]))
-							ok = false;
-					}
-				}
-				// 5°) OK
-				if (ok) {
-					page[nbTp++] = vc;
-					struct sDepliage sdC = {nbP, vc, tc};
-					sD[nbD++] = sdC;
-					dispo[vc] = false;
-				}
-			}
-		}
-		// rech prochaine face à déplier
-		tcn++;
-		if (tcn < nbTp){
-			tc = page[tcn];
-			ok = true;
-		}
-		else
-			ok = false;
-	} while (ok);
-	
-	struct sVector2d tmp[nbTp*3];
-	for (int i = 0, k = 0; i < nbTp; i++){
-		for (int j = 0; j < 3; j++){
-			tmp[k++] = v2d[page[i]][j];
-		}
-	}
-	
-	struct sVector2d b[2];
-	calcBoiteEnglobante(b, tmp, nbTp*3);	
-	// ajustement en bas à gauche
-	for (int i = 0; i < nbTp; i++){
-		for (int j = 0; j < 3; j++)
-			v2d[page[i]][j] = sVector2dSub(v2d[page[i]][j], 
-				sVector2dSub(b[0], marge));
-	}
-	// répartition en lignes
-	for (int i = 0; i < nbTp; i++){
-		for (int j = 0; j < 3; j++){		
-			lignes[nbL] = sLigneNew(
-			nbP, nbL, 
-				v2d[page[i]][j], v2d[page[i]][suiv(j)],
-				page[i], j, 
-				voisins[page[i]][j].nF, voisins[page[i]][j].idx);
 
+			// 1°) rapproche v2d[vc] de v2d[tc]
+			struct sVector2d deltaV = sVector2dSub(v2d[tc][vi], v2d[vc][v.idx]);
+			for (int n = 0; n < 3; n++)
+				v2d[vc][n] = sVector2dAdd(v2d[vc][n], deltaV);
+			// 2°) tourne v2d[vc]
+			double a = calcAngle(v2d[tc][vi], v2d[tc][suiv(vi)], v2d[vc][prec(v.idx)]);
+			for (int n = 0; n < 3; n++) {
+				v2d[vc][n] = rotation(v2d[tc][vi], v2d[vc][n], a);
+				vMin[nbP] = vPetit(vMin[nbP], v2d[vc][n]);
+			}
+		}
+	}
+	
+	for (i = 0; i < nbD; i++) {
+		int tc = sD[i].face;
+		int pc = sD[i].page;
+		for (int j = 0; j < 3; j++) {
+			v2d[tc][j] = sVector2dSub(v2d[tc][j],
+				sVector2dSub(vMin[pc], marge));
+		}
+	}
+
+	for (i = 0; i < nbD; i++) {
+		int tc = sD[i].face;
+		int pc = sD[i].page;
+		for (int j = 0; j < 3; j++) {
+			lignes[nbL] = sLigneNew(pc, nbL,
+				v2d[tc][j], v2d[tc][suiv(j)],
+				tc, j,
+				voisins[tc][j].nF, voisins[tc][j].idx);
 			nbL++;
 		}
 	}
 	
 	supprimeDoublons(lignes, nbL);
 
-	tc = premDispo(dispo, nbF);
-	nbP++;
-}while(tc > -1);
-
 	qsort(lSNA, nAff, sizeof(struct sNAff), compAff);
 	qsort(lignes, nbL, sizeof(struct sLigne), compPg);
-	
-	sauveDonnees(OBJ, ech, fc, tc0, sD, nbD);
 
 	int lc = 0;
 	int nA;
@@ -325,7 +309,7 @@ do {
 						struct sDepliage sdt = sD[sdi];
 						if (sdt.page == ppc) {
 							struct sVector2d m = centroid(v2d[sdt.face]);
-							afficheNum(cr, sdt.face, m, m, C_VERT);
+							afficheNum(cr, sdt.face, m, m, C_BLEU);
 						}
 					}
 				}
@@ -381,12 +365,15 @@ do {
 			struct sDepliage sdt = sD[sdi];
 			if (sdt.page == ppc) {
 				struct sVector2d m = centroid(v2d[sdt.face]);
-				afficheNum(cr, sdt.face, m, m, C_VERT);
+				afficheNum(cr, sdt.face, m, m, C_BLEU);
 			}
 		}
 	}
+
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 
+	free(sD);
 	return 0;
+
 }
