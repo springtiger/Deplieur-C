@@ -20,35 +20,21 @@
 #define max(a,b) (a>=b?a:b)
 #define min(a,b) (a<=b?a:b)
 
-#define L_COUPE 1
-#define L_PLI_M 2
-#define L_PLI_V 3
-#define L_PLI_C	4
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include <cairo/cairo.h>
 #include <cairo/cairo-pdf.h>
 #include "deputils.c"
-
-
-struct sVector2d vPetit(struct sVector2d p1, struct sVector2d p2) {
-	struct sVector2d r;
-	r.x = min(p1.x, p2.x);
-	r.y = min(p1.y, p2.y);
-
-	return r;
-}
 
 int main(void) {
 // charge données
 	char * nomFichierDonnees = "donnees.dep";
 	FILE * fd;
 	int rc;
-
 	fd = fopen(nomFichierDonnees, "r");
 	if (fd == NULL) {
 		return -1;
@@ -67,30 +53,56 @@ int main(void) {
 	struct sDepliage * sD = NULL;
 	struct sDepliage sD0;
 	
-  int d0;
-  int de[2];
-  int i = 0;
-  while (fscanf(fd, "%d", &d0) == 1) {
- 		de[i] = d0;
- 		if (i == 1) {
-			sD0.orig = de[0];
-			sD0.face = de[1];
-			sD = (struct sDepliage*) realloc(sD, sizeof(struct sDepliage)*(nbD+1));
-			sD[nbD] = sD0;
-			nbD++;
-			i = 0;
-			puts("");
+  int d0, d1, d2;
+  while (fscanf(fd, "%d", &d0) > 0) {
+ 		if (d0 == -1) {
+			fscanf(fd, "%d", &d1);
+			fscanf(fd, "%d", &d2);
 		} else {
-			i++;
+			fscanf(fd, "%d", &d1);
+			d2 = 0;			
 		}
-	}
+ 		sD0.orig = d0;
+ 		sD0.face = d1;
+ 		sD0.a		 = d2;
+		sD = (struct sDepliage *) realloc(sD, sizeof(struct sDepliage)*(nbD+1));
+		sD[nbD] = sD0;
+		nbD++;
+ 	}	
 	rc = fclose(fd);
 	if (rc == EOF) {
 		return -1;
 	}
+
+// charge données languettes
+	int nbLgt = 0;
+	struct sLang * sLgt = NULL;
+
+	int nbLgtB = 0;
+	struct sLang * sLgtB = NULL;
+
+	struct sLang sLgt0;
 	
-	
-	
+	char * nomFichierLanguettes = "donnees.lng";
+	fd = fopen(nomFichierLanguettes, "r");	
+	if (fd != NULL) {
+		while (fscanf(fd, "%d", &d0) > 0) {
+			fscanf(fd, "%d", &d1);
+			fscanf(fd, "%d", &d2);
+			sLgt0.n1  = d0;
+			sLgt0.n2  = d1;
+			sLgt0.v  = d2;
+			sLgt = (struct sLang *) realloc(sLgt, sizeof(struct sLang)*(nbLgt+1));
+			sLgt[nbLgt] = sLgt0;
+			nbLgt++;
+		}
+		rc = fclose(fd);
+		if (rc == EOF) {
+			return -1;
+		}
+	}
+		
+	printf("nb liens : %d\n", nbD);	
 	printf("Nom fichier :%s\n", OBJ);
 	printf("Echelle : %lf\n", ech);
 	printf("format page : A%d\n", fc);
@@ -200,10 +212,10 @@ int main(void) {
 		{ 421,   595},	// A5
 	};
   struct sVector2d marge = {10, 10};
-  struct sVector2d limitePage = sVector2dSub(formats[fc], marge);
+  //struct sVector2d limitePage = sVector2dSub(formats[fc], marge);
 	
 	// nb elements
-	printf("%d points\n%d faces\n", nbV, nbF);
+	printf("%d points - %d faces\n", nbV, nbF);
   
 	// DEBUT DEPLIAGE
 
@@ -216,7 +228,7 @@ int main(void) {
   
   cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
 		CAIRO_FONT_WEIGHT_NORMAL);
-  cairo_set_font_size (cr, 11.0);
+  cairo_set_font_size (cr, 14.0);
   cairo_set_line_width(cr, 1);
 
 	struct sNAff lSNA [nbF*3];
@@ -227,10 +239,16 @@ int main(void) {
 	struct sLigne lignes[nbF *3];
 	int nbL = 0;
 	
-	for (i = 0; i < nbD; i++) {
+	for (int i = 0; i < nbD; i++) {
 		if (sD[i].orig == -1) {
 			nbP++;
 			int f = sD[i].face;
+			int a = sD[i].a;
+			if (a != 0) {
+				struct sVector2d m = centroid(v2d[f]);
+				for (int vi = 0; vi < 3; vi++)
+					v2d[f][vi] = rotation(m, v2d[f][vi], a);
+			}
 			vMin = (struct sVector2d*) realloc(vMin, sizeof(struct sVector2d) * (nbP+1));
 			vMin[nbP] = vPetit(v2d[f][0], vPetit(v2d[f][1],v2d[f][2]));
 		}
@@ -256,7 +274,7 @@ int main(void) {
 		}
 	}
 	
-	for (i = 0; i < nbD; i++) {
+	for (int i = 0; i < nbD; i++) {
 		int tc = sD[i].face;
 		int pc = sD[i].page;
 		for (int j = 0; j < 3; j++) {
@@ -265,7 +283,7 @@ int main(void) {
 		}
 	}
 
-	for (i = 0; i < nbD; i++) {
+	for (int i = 0; i < nbD; i++) {
 		int tc = sD[i].face;
 		int pc = sD[i].page;
 		for (int j = 0; j < 3; j++) {
@@ -290,19 +308,12 @@ int main(void) {
 	struct sAN lAN[nbF];
 	int nbAN = 0;
 	int ppc = 0;
-
+	
 	for (int i = 0; i < nbL; i++){
 		struct sLigne l = lignes[i];
 		if (l.id > -1) {
 			if (lc != l.nP) {
 				lc = l.nP;
-				txtPage = (char *)malloc(20 * sizeof(char));
-				cairo_move_to(cr, 0, limitePage.y-20);
-				sprintf(txtPage, "page %d (%d)", lc, faces[l.n1][3]);
-				cairo_set_source_rgb(cr, C_NOIR.r, C_NOIR.v, C_NOIR.b);
-				cairo_show_text(cr, txtPage);
-				free(txtPage);
-				
 				if (nbAN > 0) {
 					afficheNumsPage(cr, lAN, nbAN, v2d);
 					for (int sdi = 0; sdi < nbD; sdi++) {
@@ -317,24 +328,49 @@ int main(void) {
 				cairo_show_page(cr);
 				ppc++;
 			}	
-			if (l.nb == 1)
-				typeL = L_COUPE;
-			else {
-				double c = tCop[(l.n1*3)+l.i1].cop;
+
+			double c = tCop[(l.n1*3)+l.i1].cop;
+			if (l.nb == 1) {
+				struct sLang l0 = {.n1 = l.n1, .n2 = l.n2};
+				struct sLang * rL;
+				if (nbLgt > 0) {
+					rL = (struct sLang *)bsearch(&l0, sLgt, nbLgt,
+					sizeof(struct sLang), compLang);
+					if(rL == NULL) {
+						typeL = L_COUPE;
+					} else if (rL->v == 0) {
+						typeL = L_COUPE;
+					}	else {	
+						if (fabs(c) < 10e-7) {
+							typeL = L_LGT_C;
+						} else {
+							typeL = c < 0 ? L_LGT_M : L_LGT_V;
+						}
+					}
+				} else {
+					typeL = L_COUPE;
+				}
+				
+				l0.v = l.n1 < l.n2 ? 1 : 0;
+				sLgtB = (struct sLang *) realloc(sLgtB, sizeof(struct sLang) * (nbLgtB+1));
+				sLgtB[nbLgtB] = l0;
+				nbLgtB++;
+			} else {
 				if (fabs(c) < 10e-7) {
 					typeL = L_PLI_C;
 				} else {
 					typeL = c < 0 ? L_PLI_M : L_PLI_V;
 				}
 			}
-			if (typeL != L_PLI_C)
+			if (typeL != L_PLI_C) {
 				faitLigne(cr, l.p1, l.p2, typeL);
-			if (l.nb == 1) {
+			}
+			if (l.nb == 1) {	
 				struct sNAff cleN;
 				struct sNAff *rechN;
 				cleN.nMax = max(l.n1, l.n2);
 				cleN.nMin = min(l.n1, l.n2);
-				rechN = (struct sNAff*)bsearch(&cleN, lSNA, nAff,
+				rechN = (struct sNAff *)bsearch(&cleN, lSNA, nAff,
 				sizeof(struct sNAff), compAff);
 				if (rechN != NULL)
 					nA = rechN->a;
@@ -351,11 +387,8 @@ int main(void) {
 	}
 	
 	txtPage = (char *)malloc(20 * sizeof(char));
-	cairo_move_to(cr, 0, limitePage.y-20);
 	sprintf(txtPage, "page %d (%d)", lc+1, faces[lignes[nbL-1].n1][3]);
 	printf("pages: %s\n", txtPage);
-	cairo_set_source_rgb(cr, C_NOIR.r, C_NOIR.v, C_NOIR.b);
-	cairo_show_text(cr, txtPage);
 	free(txtPage);
 	
 	if (nbAN > 0) {
@@ -369,11 +402,19 @@ int main(void) {
 			}
 		}
 	}
-
+	
+	puts("Créer fichier languettes (O/N) ?");
+	char repLng = getchar();
+	
+	if (toupper(repLng) == 'O')
+	  sauveLanguettes(sLgtB, nbLgtB);
+	
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 
 	free(sD);
+	free(sLgt);
+	free(sLgtB);
 	return 0;
 
 }

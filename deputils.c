@@ -49,12 +49,27 @@ struct sDepliage {
 	int page;
 	int face;
 	int orig;
+	int a;
 };
 
 struct sAN {
 	int n;
 	struct sVector2d p1, p2;
 };
+
+struct sLang {
+	int n1;
+	int n2;
+	int v;
+};
+
+#define L_COUPE 1
+#define L_PLI_M 2
+#define L_PLI_V 3
+#define L_PLI_C	4
+#define L_LGT_M	5
+#define L_LGT_V	6
+#define L_LGT_C	7
 
 // FONCTIONS
 bool eqd(double d1, double d2) {
@@ -75,6 +90,14 @@ struct sLigne sLigneNew (int iPage, int id, struct sVector2d p1, struct sVector2
 	l.nb = 1;
 	
 	return l;
+}
+
+struct sVector2d sVector2dNew(double x, double y) {
+	struct sVector2d r;
+	r.x = x;
+	r.y = y;
+	
+	return r;
 }
 
 struct sVector2d sVector2dAdd (struct sVector2d v1, struct sVector2d v2) {
@@ -129,6 +152,20 @@ struct sVector2d milieu (struct sVector2d p1, struct sVector2d p2) {
 	
 	return r;
 }
+
+struct sVector2d vPetit(struct sVector2d p1, struct sVector2d p2) {
+	struct sVector2d r;
+	r.x = min(p1.x, p2.x);
+	r.y = min(p1.y, p2.y);
+
+	return r;
+}
+
+double direction (struct sVector2d p1, struct sVector2d p2) {
+	return atan2(p2.y - p1.y, p2.x - p1.x);
+}
+
+double degToRad(double degrees) { return degrees * M_PI / 180; }
 
 void d2ize (struct sVector3d p[3], struct sVector2d P[3]) {
 	struct sVector3d
@@ -228,7 +265,7 @@ double angle (struct sVector2d p1, struct sVector2d p2) {
 	return r;
 }
 
-int compPg (const void * el1, const void *el2) {
+int compPg (const void * el1, const void * el2) {
 	struct sLigne v1 = * (const struct sLigne *) el1;
 	struct sLigne v2 = * (const struct sLigne *) el2;
 	
@@ -237,13 +274,35 @@ int compPg (const void * el1, const void *el2) {
 	return r;
 }
 
-int compAff (const void * el1, const void *el2) {
+int compAff (const void * el1, const void * el2) {
 	struct sNAff v1 = * (const struct sNAff *) el1;
 	struct sNAff v2 = * (const struct sNAff *) el2;
 
 	int r = (v1.nMax != v2.nMax) ? v1.nMax - v2.nMax : v1.nMin - v2.nMin;
 
 	return r;
+}
+
+int compLang (const void * el1, const void * el2) {
+	struct sLang v1 = * (const struct sLang *) el1;
+	struct sLang v2 = * (const struct sLang *) el2;
+	
+	int r = (v1.n1 - v2.n1) * 2000 + (v1.n2 - v2.n2);
+	
+	return r;
+}
+
+void trapeze (struct sVector2d * P, struct sVector2d p1, 
+	struct sVector2d p2, double s, double dt) {
+	double d = distance2d(p1, p2);
+	double a = degToRad(90) - direction(p1, p2);
+	if (d > 50) dt = dt/2;
+	//if (d > 100) dt = dt/2;
+
+	P[0] = rotation(p1, p1, a);
+	P[1] = rotation(p1, sVector2dAdd(p1, sVector2dNew(s, d*dt)), a);
+	P[2] = rotation(p1, sVector2dAdd(p1, sVector2dNew(s, d*(1-dt))), a);
+	P[3] = rotation(p1, sVector2dAdd(p1, sVector2dNew(0, d)), a);
 }
 	
 int comp (const void * el1, const void * el2) {
@@ -409,7 +468,8 @@ void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL)
 		static const double tiret[] = {10.0};
 		static const double tpoint[] = {8.0,2.0,2.0,2.0};
 
-		if (typeL == L_COUPE) {
+		if ((typeL == L_COUPE) || (typeL == L_LGT_C) || (typeL == L_LGT_M)
+		 || (typeL == L_LGT_V)) {
 			c = C_ROUGE;
 			cairo_set_dash(cr, tiret, 0, 0);
 		} else if (typeL == L_PLI_M) {
@@ -422,9 +482,34 @@ void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL)
 	
 		cairo_set_source_rgb(cr, c.r, c.v, c.b);
  
-		cairo_move_to(cr, p1.x, p1.y);
-		cairo_line_to(cr, p2.x, p2.y);
-		cairo_stroke(cr);
+		if ((typeL == L_LGT_C) || (typeL == L_LGT_M) || (typeL == L_LGT_V)) {
+			struct sVector2d pts[4];
+			trapeze(pts, p1, p2, 10, 0.45);
+			cairo_move_to(cr, pts[0].x, pts[0].y);
+			cairo_line_to(cr, pts[1].x, pts[1].y);
+			cairo_line_to(cr, pts[2].x, pts[2].y);
+			cairo_line_to(cr, pts[3].x, pts[3].y);
+			cairo_stroke(cr);
+			if (typeL == L_LGT_M) {
+				c = C_MARRON;
+				cairo_set_source_rgb(cr, c.r, c.v, c.b);
+				cairo_set_dash(cr, tiret, 1, 0);
+				cairo_move_to(cr, p1.x, p1.y);
+				cairo_line_to(cr, p2.x, p2.y);
+				cairo_stroke(cr);				
+			} else if (typeL == L_LGT_V) {
+				c = C_VERT;
+				cairo_set_source_rgb(cr, c.r, c.v, c.b);
+				cairo_set_dash(cr, tpoint, 4, 0);
+				cairo_move_to(cr, p1.x, p1.y);
+				cairo_line_to(cr, p2.x, p2.y);
+				cairo_stroke(cr);
+			}
+		} else {
+			cairo_move_to(cr, p1.x, p1.y);
+			cairo_line_to(cr, p2.x, p2.y);
+			cairo_stroke(cr);
+		}
 	}
 }
 
@@ -477,6 +562,34 @@ void calculeCop(int n, struct sVoisin voisins[][3], struct sCop* tCop, struct sV
 	}
 }
 
+int sauveLanguettes(struct sLang * sL, int nbL) {
+	char * nomFichierDonnees = "donnees.lng";
+	FILE * fichierDonnees;
+	int rc;
+	
+	qsort(sL, nbL, sizeof(struct sLang), compLang);
+
+	fichierDonnees = fopen(nomFichierDonnees, "w");
+	if (fichierDonnees == NULL) {
+		printf("Impossible de sauvegarder les données\n");
+		return -1;
+	}
+
+	for (int i = 0; i < nbL; i++) {
+		fprintf(fichierDonnees, "%4d %4d %d\n", sL[i].n1, sL[i].n2, 
+			sL[i].n1 > sL[i].n2 ? 0 : 1 );
+	}
+	rc = fclose(fichierDonnees);
+	if (rc == EOF ) {
+		fprintf(stderr, "Impossible de fermer le fichier\n");
+		printf("Impossible de fermer le fichier\n");
+		return -1;
+	}
+	
+	return 0;
+}
+
+
 int sauveDonnees(char *OBJ, double ech, int fc, int tc0, struct sDepliage * sD, int nbD) {
 	char * nomFichierDonnees = "donnees.dep";
 	FILE * fichierDonnees;
@@ -493,7 +606,11 @@ int sauveDonnees(char *OBJ, double ech, int fc, int tc0, struct sDepliage * sD, 
 	fprintf(fichierDonnees, "%2d\n", fc);
 	fprintf(fichierDonnees, "%4d\n", tc0);
 	for (int i = 0; i < nbD; i++) {
-		fprintf(fichierDonnees, "%4d %4d\n", sD[i].orig, sD[i].face);
+		if (sD[i].orig == -1) {
+			fprintf(fichierDonnees, "%4d %4d %4d\n", sD[i].orig, sD[i].face, sD[i].a);
+		} else {
+			fprintf(fichierDonnees, "%4d %4d\n", sD[i].orig, sD[i].face);
+		}
 	}
 	rc = fclose(fichierDonnees);
 	if (rc == EOF ) {

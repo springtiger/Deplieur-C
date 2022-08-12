@@ -243,7 +243,7 @@ do {
 				// 5°) OK
 				if (ok) {
 					page[nbTp++] = vc;
-					struct sDepliage sdC = {nbP, vc, tc};
+					struct sDepliage sdC = {nbP, vc, tc, 0};
 					sD[nbD++] = sdC;
 					dispo[vc] = false;
 				}
