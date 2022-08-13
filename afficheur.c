@@ -224,7 +224,7 @@ int main(void) {
 	bool bAffNumFace;
 	int r = scanf(" %c", &chAffNumFace);
 	if (r == 1) {
-		bAffNumFace = toupper(chAffNumFace == 'O');
+		bAffNumFace = toupper(chAffNumFace) == 'O';
 	}
 
   // INITs PDF
