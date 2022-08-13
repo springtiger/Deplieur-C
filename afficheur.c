@@ -218,6 +218,14 @@ int main(void) {
 	printf("%d points - %d faces\n", nbV, nbF);
   
 	// DEBUT DEPLIAGE
+	
+	puts("Afficher le n° des faces (O/N) ?");
+	char chAffNumFace; 
+	bool bAffNumFace;
+	int r = scanf(" %c", &chAffNumFace);
+	if (r == 1) {
+		bAffNumFace = toupper(chAffNumFace == 'O');
+	}
 
   // INITs PDF
   cairo_surface_t *surface;
@@ -319,8 +327,10 @@ int main(void) {
 					for (int sdi = 0; sdi < nbD; sdi++) {
 						struct sDepliage sdt = sD[sdi];
 						if (sdt.page == ppc) {
-							struct sVector2d m = centroid(v2d[sdt.face]);
-							afficheNum(cr, sdt.face, m, m, C_BLEU);
+							if (bAffNumFace) {
+								struct sVector2d m = centroid(v2d[sdt.face]);
+								afficheNum(cr, sdt.face, m, m, C_BLEU);
+							}
 						}
 					}
 				}
@@ -397,17 +407,67 @@ int main(void) {
 		for (int sdi = 0; sdi < nbD; sdi++) {
 			struct sDepliage sdt = sD[sdi];
 			if (sdt.page == ppc) {
-				struct sVector2d m = centroid(v2d[sdt.face]);
-				afficheNum(cr, sdt.face, m, m, C_BLEU);
+				if (bAffNumFace) {
+					struct sVector2d m = centroid(v2d[sdt.face]);
+					afficheNum(cr, sdt.face, m, m, C_BLEU);
+				}
 			}
 		}
 	}
 	
 	puts("Créer fichier languettes (O/N) ?");
-	char repLng = getchar();
+	char repLng;
 	
-	if (toupper(repLng) == 'O')
-	  sauveLanguettes(sLgtB, nbLgtB);
+	r = scanf(" %c", & repLng);
+	if (r == 1) {
+		if (toupper(repLng) == 'O') {
+			puts("Type de languettes");
+			puts(" 0 : sans languettes");
+			puts(" 1 : 1 languette par paire");
+			puts(" 2 : 2 languettes par paire");
+			int repTLng;
+			scanf("%d", & repTLng);
+			if ((repTLng >= 0) && (repTLng <= 2))
+				sauveLanguettes(sLgtB, nbLgtB, repTLng);
+		}
+	}
+
+	qsort(lSNA, nAff, sizeof(struct sNAff), compAffa);	
+	
+	int numL;
+	do {
+		puts("Inverser languette (n° sinon -1) ?");
+		int r;
+		r = scanf("%d", &numL);
+		if (r == 1) {
+			if (numL > -1) {
+				struct sNAff cleN;
+				struct sNAff * rechN;
+				cleN.a = numL;
+				rechN = (struct sNAff *) bsearch(&cleN, lSNA, nAff,
+								sizeof(struct sNAff), compAffa);
+				if(rechN != NULL) {
+					struct sLang cleL;
+					struct sLang * rechL;
+					cleL.n1 = rechN->nMax;
+					cleL.n2 = rechN->nMin;
+					rechL = (struct sLang *) bsearch(&cleL, sLgt, nbLgt,
+									sizeof(struct sLang), compLang);
+					if (rechL != NULL) {
+						rechL->v = 1 - rechL->v;
+					}
+					cleL.n1 = rechN->nMin;
+					cleL.n2 = rechN->nMax;
+					rechL = (struct sLang *) bsearch(&cleL, sLgt, nbLgt,
+									sizeof(struct sLang), compLang);
+					if (rechL != NULL) {
+						rechL->v = 1 - rechL->v;
+						sauveLanguettes(sLgt, nbLgt, M_LANG_SAUV);
+					}
+				}
+			}
+		}
+	} while(numL > -1);	
 	
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
