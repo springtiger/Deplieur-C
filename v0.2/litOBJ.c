@@ -53,7 +53,8 @@ int main(void)
 	
 	int gc = 0; // groupe courant
 	
-	//int faces
+	int fc[4];
+	int pos;
 	
 	FILE * fs;
 	fs = fopen(OBJ, "r");
@@ -75,16 +76,20 @@ int main(void)
 			struct sVector3d s = { v[0]*ech, v[1]*ech, v[2]*ech };
 			sommets = (struct sVector3d *)realloc(sommets, sizeof(struct sVector3d) * (nbSommets+1));
 			sommets[nbSommets++] = s;
-			printf("sommet : %lf %lf %lf\n", s.x, s.y, s.z);
+			//printf("sommet : %lf %lf %lf\n", s.x, s.y, s.z);
 		} else if ((tL0 == 'g')&&(tL1 == ' ')) { // g = group (groupe)
 			gc++;
 		} else if ((tL0 == 'f')&&(tL1 == ' ')) { // f = face
 			char c[3][20];
-			//c[0] = malloc(sizeof(char)*30);
-			//c[1] = malloc(sizeof(char)*30);
-			//c[2] = malloc(sizeof(char)*30);
 			sscanf(ligneLue, "f %s %s %s", c[0], c[1], c[2]);
-			printf("face : %s %s %s\n", c[0], c[1], c[2]);
+			for (int i = 0; i < 3; i++) {
+				pos = strcspn(c[i], "/");
+				char ch[pos+1];
+				strncpy(ch, c[i], pos);
+				fc[i] = atoi(ch)-1;
+			}
+			
+			printf("face : %d %d %d\n", fc[0], fc[1], fc[2]);
 		}
 		
 		//printf("%s", tampon);
