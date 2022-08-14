@@ -47,7 +47,6 @@ int main(void)
 	//printf("Echelle :");
 	//scanf("%f", &ech);
 
-	printf("Chargement : %s\n", OBJ);
 	struct sVector3d * sommets = NULL;
 	int nbSommets = 0;
 	
@@ -55,7 +54,6 @@ int main(void)
 	
 	int * faces0 = NULL;
 	int nbFaces = 0;
-	int fc[4];
 	int pos;
 	
 	FILE * fs;
@@ -68,6 +66,7 @@ int main(void)
 	char *tampon;
 	char *ligneLue;
 	do {
+		int fc[4];
 		tampon = malloc(sizeof(char) * MAX_TAMPON);
 		ligneLue = fgets(tampon, MAX_TAMPON, fs);
 		char tL0 = tampon[0];
@@ -83,7 +82,6 @@ int main(void)
 		} else if ((tL0 == 'f')&&(tL1 == ' ')) { // f = face
 			char c[3][20];
 			sscanf(ligneLue, "f %s %s %s", c[0], c[1], c[2]);
-			printf("f %s %s %s\n", c[0], c[1], c[2]);
 			for (int i = 0; i < 3; i++) {
 				pos = strspn(c[i], "0123456789");
 				char ch[pos+1];
@@ -112,8 +110,9 @@ int main(void)
 	}
 	free(faces0);
 	
-//	for (int i = 0; i < nbFaces; i++)
-//		printf("face %d : %d %d %d (%d)\n", i, faces[i][0],faces[i][1],faces[i][2],faces[i][3]);
+	for (int i = 0; i < nbFaces; i++)
+		printf("face %d : %d %d %d (%d)\n", i, faces[i][0], faces[i][1], faces[i][2], faces[i][3]);
+	
 
 	// VOISINS
 	struct sVoisin voisins[nbFaces][3];	
@@ -124,6 +123,42 @@ int main(void)
 		for (int j = 0; j < 3; j++)
 			printf(" %d", voisins[i][j].nF);
 	}
-		
+	
+	// V3D V2D
+	struct sVector3d v3d[nbFaces][3];
+	struct sVector2d v2d[nbFaces][3];
+	for (int i = 0; i < nbFaces; i++) {
+		for (int j = 0; j < 3; j++) {
+			v3d[i][j] = sommets[faces[i][j]];
+		}
+		d2ize(v3d[i], v2d[i]);
+	}
 	free(sommets);
+	
+	// estCOP
+	struct sCop tCop[nbFaces * 3];
+	calculeCop(nbFaces, voisins, tCop, v3d);
+	
+  struct sVector2d marge = {10, 10};
+  struct sVector2d formats[6] = {
+		{2380,	3368},	// A0
+		{1684,	2380},	// A1
+		{1190,	1684},	// A2
+		{ 842,	1190},	// A3
+		{ 595,   842},	// A4
+		{ 421,   595},	// A5
+	};
+
+	//printf("Format A(0..5) :");
+  int fc = 4;
+  //scanf("%d", &fc);
+  
+  struct sVector2d limitePage = sVector2dSub(formats[fc], marge);
+	
+	puts("");
+	// nb elements
+	printf("%d points\n%d faces\n", nbSommets, nbFaces);
+  
+	// DEBUT DEPLIAGE
+	
 }
