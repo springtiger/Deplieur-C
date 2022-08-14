@@ -53,6 +53,8 @@ int main(void)
 	
 	int gc = 0; // groupe courant
 	
+	int * faces0 = NULL;
+	int nbFaces = 0;
 	int fc[4];
 	int pos;
 	
@@ -74,9 +76,9 @@ int main(void)
 			double v[3];
 			sscanf(ligneLue, "v %lf %lf %lf", &v[0], &v[1], &v[2]);
 			struct sVector3d s = { v[0]*ech, v[1]*ech, v[2]*ech };
-			sommets = (struct sVector3d *)realloc(sommets, sizeof(struct sVector3d) * (nbSommets+1));
+			sommets = (struct sVector3d *) realloc(sommets, sizeof(struct sVector3d) * (nbSommets+1));
 			sommets[nbSommets++] = s;
-			//printf("sommet : %lf %lf %lf\n", s.x, s.y, s.z);
+			printf("sommet : %lf %lf %lf\n", s.x, s.y, s.z);
 		} else if ((tL0 == 'g')&&(tL1 == ' ')) { // g = group (groupe)
 			gc++;
 		} else if ((tL0 == 'f')&&(tL1 == ' ')) { // f = face
@@ -88,8 +90,13 @@ int main(void)
 				strncpy(ch, c[i], pos);
 				fc[i] = atoi(ch)-1;
 			}
-			
-			printf("face : %d %d %d\n", fc[0], fc[1], fc[2]);
+			//printf("face : %d %d %d\n", fc[0], fc[1], fc[2]);
+			fc[3] = gc;
+			faces0 = (int *) realloc(faces0, sizeof(int) * (nbFaces+1)*4);
+			for (int i = 0; i < 4; i++) {
+				faces0[nbFaces*4+i] = fc[i];
+			}			
+			nbFaces++;
 		}
 		
 		//printf("%s", tampon);
@@ -98,5 +105,16 @@ int main(void)
 		perror("erreur fermeture fichier");
 		
 	free(tampon);
+	
+	int faces[nbFaces][4];
+	for (int i = 0; i < nbFaces; i++) {
+		for( int j = 0; j < 4; j++)
+			faces[i][j] = faces0[i*4+j];
+	}
+	free(faces0);
+	
+	
+	
+		
 	free(sommets);
 }
