@@ -71,7 +71,6 @@ int main(void)
 		
 		double v0, v1, v2;
 		if ((typeLigne[0] == 'v')&&(typeLigne[1] == ' ')) { // v = vector (sommet)
-			puts("sommet");
 			sscanf(ligneLue, "v %lf %lf %lf", &v0, &v1, &v2);
 			printf("sommet : %lf %lf %lf\n", v0, v1, v2);
 		}
