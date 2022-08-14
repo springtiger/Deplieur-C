@@ -44,11 +44,15 @@ int main(void) {
 	double ech;
 	int fc;
 	int tc0;
+	float fontSize;
+	int hLang;
 	
 	fscanf(fd, "%s", OBJ);
 	fscanf(fd, "%lf", &ech);
 	fscanf(fd, "%2d", &fc);
 	fscanf(fd, "%4d", &tc0);
+	fscanf(fd, "%f", &fontSize);
+	fscanf(fd, "%2d", &hLang);
 	int nbD = 0;
 	struct sDepliage * sD = NULL;
 	struct sDepliage sD0;
@@ -236,7 +240,7 @@ int main(void) {
   
   cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
 		CAIRO_FONT_WEIGHT_NORMAL);
-  cairo_set_font_size (cr, 14.0);
+  cairo_set_font_size (cr, fontSize);
   cairo_set_line_width(cr, 1);
 
 	struct sNAff lSNA [nbF*3];
@@ -373,7 +377,7 @@ int main(void) {
 				}
 			}
 			if (typeL != L_PLI_C) {
-				faitLigne(cr, l.p1, l.p2, typeL);
+				faitLigne(cr, l.p1, l.p2, typeL, hLang);
 			}
 			if (l.nb == 1) {	
 				struct sNAff cleN;

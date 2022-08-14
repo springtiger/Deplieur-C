@@ -167,10 +167,23 @@ int main(void) {
   surface = cairo_pdf_surface_create("output.pdf", formats[fc].x, formats[fc].y);
   cr = cairo_create(surface);
   
-  cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+  printf("Taille des nombres (généralement 11) : \n");
+  float fontSize;
+  int r = scanf("%f", &fontSize);
+  if (r < 1) {
+		fontSize = 11.0;
+	}
+	cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
 		CAIRO_FONT_WEIGHT_NORMAL);
-  cairo_set_font_size (cr, 11.0);
-  cairo_set_line_width(cr, 1);
+  cairo_set_font_size (cr, fontSize);
+  cairo_set_line_width (cr, 1);
+
+  printf("Hauteur des languettes (généralement 10) : \n");
+  int hLang;
+  r = scanf("%d", &hLang);
+  if (r < 1) {
+		hLang = 10;
+	}
 
 	bool dispo[nbF];
 	for (int i = 0; i < nbF; i++)dispo[i] = true;
@@ -296,7 +309,7 @@ do {
 	qsort(lSNA, nAff, sizeof(struct sNAff), compAff);
 	qsort(lignes, nbL, sizeof(struct sLigne), compPg);
 	
-	sauveDonnees(OBJ, ech, fc, tc0, sD, nbD);
+	sauveDonnees(OBJ, ech, fc, tc0, fontSize, hLang, sD, nbD);
 
 	int lc = 0;
 	int nA;
@@ -325,7 +338,7 @@ do {
 						struct sDepliage sdt = sD[sdi];
 						if (sdt.page == ppc) {
 							struct sVector2d m = centroid(v2d[sdt.face]);
-							afficheNum(cr, sdt.face, m, m, C_VERT);
+							afficheNum(cr, sdt.face, m, m, C_BLEU);
 						}
 					}
 				}
@@ -344,7 +357,7 @@ do {
 				}
 			}
 			if (typeL != L_PLI_C)
-				faitLigne(cr, l.p1, l.p2, typeL);
+				faitLigne(cr, l.p1, l.p2, typeL, hLang);
 			if (l.nb == 1) {
 				struct sNAff cleN;
 				struct sNAff *rechN;
@@ -381,7 +394,7 @@ do {
 			struct sDepliage sdt = sD[sdi];
 			if (sdt.page == ppc) {
 				struct sVector2d m = centroid(v2d[sdt.face]);
-				afficheNum(cr, sdt.face, m, m, C_VERT);
+				afficheNum(cr, sdt.face, m, m, C_BLEU);
 			}
 		}
 	}

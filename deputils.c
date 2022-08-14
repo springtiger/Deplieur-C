@@ -71,6 +71,11 @@ struct sLang {
 #define L_LGT_V	6
 #define L_LGT_C	7
 
+#define M_LANG_SAUV		3
+#define M_LANG_CREA0	0
+#define M_LANG_CREA1	1
+#define M_LANG_CREA2	2
+
 // FONCTIONS
 bool eqd(double d1, double d2) {
 	return fabs(d1 - d2) < epsilon;
@@ -283,6 +288,15 @@ int compAff (const void * el1, const void * el2) {
 	return r;
 }
 
+int compAffa (const void * el1, const void * el2) {
+	struct sNAff v1 = * (const struct sNAff *) el1;
+	struct sNAff v2 = * (const struct sNAff *) el2;
+
+	int r = v1.a - v2.a;
+
+	return r;
+}
+
 int compLang (const void * el1, const void * el2) {
 	struct sLang v1 = * (const struct sLang *) el1;
 	struct sLang v2 = * (const struct sLang *) el2;
@@ -462,7 +476,7 @@ do {
 return n;
 }
 
-void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL) {
+void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL, int hLang) {
 	if (typeL != L_PLI_C) { // pas de ligne si pli coplanaire
 		struct sCoul c;
 		static const double tiret[] = {10.0};
@@ -484,7 +498,7 @@ void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL)
  
 		if ((typeL == L_LGT_C) || (typeL == L_LGT_M) || (typeL == L_LGT_V)) {
 			struct sVector2d pts[4];
-			trapeze(pts, p1, p2, 10, 0.45);
+			trapeze(pts, p1, p2, hLang, 0.45);
 			cairo_move_to(cr, pts[0].x, pts[0].y);
 			cairo_line_to(cr, pts[1].x, pts[1].y);
 			cairo_line_to(cr, pts[2].x, pts[2].y);
@@ -562,7 +576,7 @@ void calculeCop(int n, struct sVoisin voisins[][3], struct sCop* tCop, struct sV
 	}
 }
 
-int sauveLanguettes(struct sLang * sL, int nbL) {
+int sauveLanguettes(struct sLang * sL, int nbL, int mode) {
 	char * nomFichierDonnees = "donnees.lng";
 	FILE * fichierDonnees;
 	int rc;
@@ -575,9 +589,17 @@ int sauveLanguettes(struct sLang * sL, int nbL) {
 		return -1;
 	}
 
+	int v;
 	for (int i = 0; i < nbL; i++) {
-		fprintf(fichierDonnees, "%4d %4d %d\n", sL[i].n1, sL[i].n2, 
-			sL[i].n1 > sL[i].n2 ? 0 : 1 );
+		if (mode == M_LANG_SAUV)
+			v = sL[i].v;
+		else if (mode == M_LANG_CREA0)
+			v = 0;
+		else if (mode == M_LANG_CREA1)
+			v = sL[i].n1 > sL[i].n2 ? 0 : 1;
+		else if (mode == M_LANG_CREA2)
+			v = 1;
+		fprintf(fichierDonnees, "%4d %4d %d\n", sL[i].n1, sL[i].n2, v);
 	}
 	rc = fclose(fichierDonnees);
 	if (rc == EOF ) {
@@ -590,7 +612,8 @@ int sauveLanguettes(struct sLang * sL, int nbL) {
 }
 
 
-int sauveDonnees(char *OBJ, double ech, int fc, int tc0, struct sDepliage * sD, int nbD) {
+int sauveDonnees(char *OBJ, double ech, int fc, int tc0, float fsize, int hL,
+		struct sDepliage * sD, int nbD) {
 	char * nomFichierDonnees = "donnees.dep";
 	FILE * fichierDonnees;
 	int rc;
@@ -605,6 +628,8 @@ int sauveDonnees(char *OBJ, double ech, int fc, int tc0, struct sDepliage * sD, 
 	fprintf(fichierDonnees, "%5.2lf\n", ech);
 	fprintf(fichierDonnees, "%2d\n", fc);
 	fprintf(fichierDonnees, "%4d\n", tc0);
+	fprintf(fichierDonnees, "%5.2f\n", fsize);
+	fprintf(fichierDonnees, "%2d\n", hL);
 	for (int i = 0; i < nbD; i++) {
 		if (sD[i].orig == -1) {
 			fprintf(fichierDonnees, "%4d %4d %4d\n", sD[i].orig, sD[i].face, sD[i].a);
