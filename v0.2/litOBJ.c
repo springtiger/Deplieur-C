@@ -83,21 +83,21 @@ int main(void)
 		} else if ((tL0 == 'f')&&(tL1 == ' ')) { // f = face
 			char c[3][20];
 			sscanf(ligneLue, "f %s %s %s", c[0], c[1], c[2]);
+			printf("f %s %s %s\n", c[0], c[1], c[2]);
 			for (int i = 0; i < 3; i++) {
-				pos = strcspn(c[i], "/");
+				pos = strspn(c[i], "0123456789");
 				char ch[pos+1];
 				strncpy(ch, c[i], pos);
-				fc[i] = atoi(ch)-1;
+				ch[pos] = '\0';
+				fc[i] = atoi(ch);
 			}
 			fc[3] = gc;
 			faces0 = (int *) realloc(faces0, sizeof(int) * (nbFaces+1)*4);
 			for (int i = 0; i < 4; i++) {
-				faces0[nbFaces*4+i] = fc[i];
+				faces0[nbFaces*4+i] = fc[i]-1;
 			}			
 			nbFaces++;
 		}
-		
-		//printf("%s", tampon);
 	} while (ligneLue != NULL);
 	if (fclose(fs))
 		perror("erreur fermeture fichier");
@@ -105,14 +105,18 @@ int main(void)
 	free(tampon);
 	
 	int faces[nbFaces][4];
+	int n = 0;
 	for (int i = 0; i < nbFaces; i++) {
 		for( int j = 0; j < 4; j++)
-			faces[i][j] = faces0[i*4+j];
+			faces[i][j] = faces0[n++];
 	}
 	free(faces0);
 	
+//	for (int i = 0; i < nbFaces; i++)
+//		printf("face %d : %d %d %d (%d)\n", i, faces[i][0],faces[i][1],faces[i][2],faces[i][3]);
+
 	// VOISINS
-	struct sVoisin voisins[nbFaces][3];
+	struct sVoisin voisins[nbFaces][3];	
 	calculeVoisinage(faces, nbFaces, voisins);
 	
 	for (int i = 0; i < nbFaces; i++) {
