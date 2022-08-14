@@ -78,7 +78,6 @@ int main(void)
 			struct sVector3d s = { v[0]*ech, v[1]*ech, v[2]*ech };
 			sommets = (struct sVector3d *) realloc(sommets, sizeof(struct sVector3d) * (nbSommets+1));
 			sommets[nbSommets++] = s;
-			printf("sommet : %lf %lf %lf\n", s.x, s.y, s.z);
 		} else if ((tL0 == 'g')&&(tL1 == ' ')) { // g = group (groupe)
 			gc++;
 		} else if ((tL0 == 'f')&&(tL1 == ' ')) { // f = face
@@ -90,7 +89,6 @@ int main(void)
 				strncpy(ch, c[i], pos);
 				fc[i] = atoi(ch)-1;
 			}
-			//printf("face : %d %d %d\n", fc[0], fc[1], fc[2]);
 			fc[3] = gc;
 			faces0 = (int *) realloc(faces0, sizeof(int) * (nbFaces+1)*4);
 			for (int i = 0; i < 4; i++) {
@@ -113,8 +111,15 @@ int main(void)
 	}
 	free(faces0);
 	
+	// VOISINS
+	struct sVoisin voisins[nbFaces][3];
+	calculeVoisinage(faces, nbFaces, voisins);
 	
-	
+	for (int i = 0; i < nbFaces; i++) {
+		printf("\n %d : voisins: ", i);
+		for (int j = 0; j < 3; j++)
+			printf(" %d", voisins[i][j].nF);
+	}
 		
 	free(sommets);
 }
