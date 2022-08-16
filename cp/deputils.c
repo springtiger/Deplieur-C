@@ -553,3 +553,93 @@ void supprimeDoublons(struct sLigne * lignes, int nbL) {
 			dOK = i;
 	}
 }
+
+void afficheNum(cairo_t *cr, int num, struct sVector2d p1,
+			struct sVector2d p2, struct sCoul c) {
+  cairo_text_extents_t te;
+	char ch[10];
+	struct sVector2d m;
+	double fheight = -3, nx, ny, a;
+	
+	cairo_set_source_rgb(cr, c.r, c.v, c.b);
+	cairo_save(cr);
+	sprintf(ch, "%d", num);
+	m = milieu(p1, p2);
+	cairo_text_extents (cr, ch, &te);
+  nx = -te.width / 2.0;
+  ny = fheight / 2;
+	cairo_translate(cr, m.x, m.y);
+  if (!eq(p1, p2)) {
+  	a = angle(p1, p2) - pi;
+		cairo_rotate(cr, a);
+	}
+	cairo_translate(cr, nx, ny);
+	cairo_move_to(cr, 0,0);
+	cairo_show_text(cr, ch);
+	cairo_restore(cr);
+}
+
+void afficheNumsPage(cairo_t *cr, struct sAN *lAN, int nbAN, struct sVector2d v[][3]) {
+	for (int iAN = 0; iAN < nbAN; iAN++){
+		struct sAN lANc = lAN[iAN];
+		struct sCoul lC;
+		if ( ((iAN > 0) 			&& (lANc.n == lAN[iAN-1].n))
+			|| ((iAN < nbAN-1) && (lANc.n == lAN[iAN+1].n)))
+			lC = C_VERT;
+		else
+			lC = C_NOIR;
+		afficheNum(cr, lANc.n, lANc.p1, lANc.p2, lC);
+	}
+}
+
+void faitLigne(cairo_t *cr, struct sVector2d p1, struct sVector2d p2, int typeL, int hLang) {
+	if (typeL != L_PLI_C) { // pas de ligne si pli coplanaire
+		struct sCoul c;
+		static const double tiret[] = {10.0};
+		static const double tpoint[] = {8.0,2.0,2.0,2.0};
+
+		if ((typeL == L_COUPE) || (typeL == L_LGT_C) || (typeL == L_LGT_M)
+		 || (typeL == L_LGT_V)) {
+			c = C_ROUGE;
+			cairo_set_dash(cr, tiret, 0, 0);
+		} else if (typeL == L_PLI_M) {
+			c = C_MARRON;
+			cairo_set_dash(cr, tiret, 1, 0);
+		} else {
+			c = C_VERT;
+			cairo_set_dash(cr, tpoint, 4, 0);
+		}
+	
+		cairo_set_source_rgb(cr, c.r, c.v, c.b);
+ 
+		if ((typeL == L_LGT_C) || (typeL == L_LGT_M) || (typeL == L_LGT_V)) {
+			struct sVector2d pts[4];
+			trapeze(pts, p1, p2, hLang, 0.45);
+			cairo_move_to(cr, pts[0].x, pts[0].y);
+			cairo_line_to(cr, pts[1].x, pts[1].y);
+			cairo_line_to(cr, pts[2].x, pts[2].y);
+			cairo_line_to(cr, pts[3].x, pts[3].y);
+			cairo_stroke(cr);
+			if (typeL == L_LGT_M) {
+				c = C_MARRON;
+				cairo_set_source_rgb(cr, c.r, c.v, c.b);
+				cairo_set_dash(cr, tiret, 1, 0);
+				cairo_move_to(cr, p1.x, p1.y);
+				cairo_line_to(cr, p2.x, p2.y);
+				cairo_stroke(cr);				
+			} else if (typeL == L_LGT_V) {
+				c = C_VERT;
+				cairo_set_source_rgb(cr, c.r, c.v, c.b);
+				cairo_set_dash(cr, tpoint, 4, 0);
+				cairo_move_to(cr, p1.x, p1.y);
+				cairo_line_to(cr, p2.x, p2.y);
+				cairo_stroke(cr);
+			}
+		} else {
+			cairo_move_to(cr, p1.x, p1.y);
+			cairo_line_to(cr, p2.x, p2.y);
+			cairo_stroke(cr);
+		}
+	}
+}
+

@@ -17,8 +17,6 @@
 //	- sauve les données dans un fichier .dep
 
 #define epsilon 0.0001
-//#define max(a,b) (a>=b?a:b)
-//#define min(a,b) (a<=b?a:b)
 
 #define L_COUPE 1
 #define L_PLI_M 2
@@ -189,23 +187,12 @@ int main(void)
 
 	// DEBUT DEPLIAGE
 
-  // INITs PDF
-  cairo_surface_t *surface;
-  cairo_t *cr;
-
-  surface = cairo_pdf_surface_create("gabarit.pdf", formats[fc].x, formats[fc].y);
-  cr = cairo_create(surface);
-  
   printf("Taille des nombres (généralement 11) : \n");
   float fontSize;
   int r = scanf("%f", &fontSize);
   if (r < 1) {
 		fontSize = 11.0;
 	}
-	cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
-		CAIRO_FONT_WEIGHT_NORMAL);
-  cairo_set_font_size (cr, fontSize);
-  cairo_set_line_width (cr, 1);
 
   printf("Hauteur des languettes (généralement 10) : \n");
   int hLang;
@@ -214,14 +201,14 @@ int main(void)
 		hLang = 10;
 	}
 
-	_Bool dispo[nbF];
-	for (int i = 0; i < nbF; i++)dispo[i] = 1;
+	_Bool dispo[nbFaces];
+	for (int i = 0; i < nbFaces; i++)dispo[i] = 1;
 	
-	struct sNAff lSNA [nbF*3];
+	struct sNAff lSNA [nbFaces*3];
 	int nAff = 0;
 
-	int page[nbF];
-	struct sDepliage sD[nbF]; // depliage
+	int page[nbFaces];
+	struct sDepliage sD[nbFaces]; // depliage
 	int nbD = 0; // nb de faces dépliées
 	
 	int tc0; // triangle courant
@@ -230,7 +217,7 @@ int main(void)
 	
 	int tc = tc0;
 	int nbP = 0;
-	struct sLigne lignes[nbF *3];
+	struct sLigne lignes[nbFaces *3];
 	int nbL = 0;
 
 do {
@@ -331,7 +318,7 @@ do {
 	
 	supprimeDoublons(lignes, nbL);
 
-	tc = premDispo(dispo, nbF);
+	tc = premDispo(dispo, nbFaces);
 	nbP++;
 }while(tc > -1);
 
@@ -345,9 +332,22 @@ do {
 	int typeL;
 	char* txtPage = NULL;
 
-	struct sAN lAN[nbF];
+	struct sAN lAN[nbFaces];
 	int nbAN = 0;
 	int ppc = 0;
+
+  // INITs PDF
+  cairo_surface_t *surface;
+  cairo_t *cr;
+
+  surface = cairo_pdf_surface_create("gabarit.pdf", formats[fc].x, formats[fc].y);
+  cr = cairo_create(surface);
+  
+	cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+		CAIRO_FONT_WEIGHT_NORMAL);
+  cairo_set_font_size (cr, fontSize);
+  cairo_set_line_width (cr, 1);
+
 
 	for (int i = 0; i < nbL; i++){
 		struct sLigne l = lignes[i];
@@ -390,8 +390,8 @@ do {
 			if (l.nb == 1) {
 				struct sNAff cleN;
 				struct sNAff *rechN;
-				cleN.nMax = max(l.n1, l.n2);
-				cleN.nMin = min(l.n1, l.n2);
+				cleN.nMax = fmax(l.n1, l.n2);
+				cleN.nMin = fmin(l.n1, l.n2);
 				rechN = (struct sNAff*)bsearch(&cleN, lSNA, nAff,
 				sizeof(struct sNAff), compAff);
 				if (rechN != NULL)
