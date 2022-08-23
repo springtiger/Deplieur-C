@@ -12,7 +12,7 @@ v0.2
 
 #include "deputils.c"
 
-Lang * inverseLanguette(Lang * sLgt, int nbLgt){
+Lang * inverseLanguette(DonneesDep dd, Lang * sLgt, int nbLgt){
 	int nvl, nO, saisie, sOK;
 	do
 	{
@@ -50,7 +50,7 @@ DonneesDep TournerPage(DonneesDep dd)
 	{
 		if (dd.sD[i].orig == -1)
 		{
-			int * tmp = (int *) realloc(sDP, (nPsD+1) * (sizeof * sDP) );
+			int * tmp = (int *) realloc(sDP, ((size_t)nPsD+1) * (sizeof * sDP) );
 			if (tmp)
 			{
 				sDP = tmp;
@@ -107,12 +107,12 @@ int main(void)
 	}
 
 	DonneesDep dd;
-	fscanf(fd, "%s", dd.fichierOBJ);
-	fscanf(fd, "%f", &(dd.echelle));
-	fscanf(fd, "%2d", &(dd.formatPage));
-	fscanf(fd, "%4d", &(dd.premierTriangle));
-	fscanf(fd, "%f", &(dd.tailleNums));
-	fscanf(fd, "%2d", &(dd.hauteurLang));
+	nvl = fscanf(fd, "%s", dd.fichierOBJ);
+	nvl = fscanf(fd, "%f", &(dd.echelle));
+	nvl = fscanf(fd, "%2d", &(dd.formatPage));
+	nvl = fscanf(fd, "%4d", &(dd.premierTriangle));
+	nvl = fscanf(fd, "%f", &(dd.tailleNums));
+	nvl = fscanf(fd, "%2d", &(dd.hauteurLang));
 	dd.sD = NULL;
 	dd.nbD = 0;
 	Depliage sD0;
@@ -122,18 +122,18 @@ int main(void)
 	{
 		if (d0 == -1)
 		{
-			fscanf(fd, "%d", &d1);
-			fscanf(fd, "%d", &d2);
+			nvl = fscanf(fd, "%d", &d1);
+			nvl = fscanf(fd, "%d", &d2);
 		}
 		else
 		{
-			fscanf(fd, "%d", &d1);
+			nvl = fscanf(fd, "%d", &d1);
 			d2 = 0;
 		}
 		sD0.orig = d0;
 		sD0.face = d1;
 		sD0.a = d2;
-		Depliage* tmp = (Depliage*)realloc(dd.sD, sizeof(Depliage) * (dd.nbD + 1));
+		Depliage* tmp = (Depliage*)realloc(dd.sD, sizeof(Depliage) * ((size_t)dd.nbD + 1));
 		if (tmp)
 		{
 			dd.sD = tmp;
@@ -159,14 +159,14 @@ int main(void)
 	{
 		while ((nvl = fscanf(fd, "%d", &d0)) > 0)
 		{
-			fscanf(fd, "%d", &d1);
-			fscanf(fd, "%d", &d2);
-			fscanf(fd, "%d", &d3);
+			nvl = fscanf(fd, "%d", &d1);
+			nvl = fscanf(fd, "%d", &d2);
+			nvl = fscanf(fd, "%d", &d3);
 			sLgt0.o  = d0;
 			sLgt0.n1 = d1;
 			sLgt0.n2 = d2;
 			sLgt0.v  = d3;
-			Lang* tmp = (Lang*)realloc(sLgt, sizeof(Lang) * (nbLgt + 1));
+			Lang* tmp = (Lang*)realloc(sLgt, sizeof(Lang) * ((size_t)nbLgt + 1));
 			if (tmp)
 			{
 				sLgt = tmp;
@@ -193,7 +193,7 @@ int main(void)
 	printf("\n%d %s - %d %s\n", dd.nbSommets, textes[5], dd.nbFaces, textes[6]);
 	
 	dd = TournerPage(dd);
-	sLgt = inverseLanguette(sLgt, nbLgt);
+	sLgt = inverseLanguette(dd, sLgt, nbLgt);
 
 	printf("%s", textes[27]);
 	char chAffNumFace;
@@ -206,12 +206,12 @@ int main(void)
 	dd = init_cairo(dd);
 	
 	// DEBUT DEPLIAGE
-	dd.lSNA = calloc(dd.nbFaces * 3, sizeof * dd.lSNA);
+	dd.lSNA = calloc((size_t)dd.nbFaces * 3, sizeof * dd.lSNA);
 	dd.nAff = 0;
 
 	int nbP = -1;
 	Vector2d* vMin = NULL;
-	dd.lignes = calloc(dd.nbFaces * 3, sizeof * dd.lignes);
+	dd.lignes = calloc((size_t)dd.nbFaces * 3, sizeof * dd.lignes);
 	dd.nbL = 0;
 	for (int i = 0; i < dd.nbD; i++)
 	{
@@ -226,7 +226,7 @@ int main(void)
 				for (int vi = 0; vi < 3; vi++)
 					dd.v2d[f][vi] = rotation(m, dd.v2d[f][vi], degToRad(a));
 			}
-			Vector2d * tmp = (Vector2d*)realloc(vMin, sizeof(Vector2d) * (nbP + 1));
+			Vector2d * tmp = (Vector2d*)realloc(vMin, sizeof(Vector2d) * ((size_t)nbP + 1));
 			if (tmp)
 			{
 				vMin = tmp;
@@ -359,7 +359,7 @@ int main(void)
 				}
 
 				l0.v = l.n1 < l.n2 ? 1 : 0;
-				Lang* tmp = (Lang*)realloc(sLgtB, sizeof(Lang) * (nbLgtB + 1));
+				Lang* tmp = (Lang*)realloc(sLgtB, sizeof(Lang) * ((size_t)nbLgtB + 1));
 				if (tmp)
 				{
 					sLgtB = tmp;
@@ -436,6 +436,21 @@ int main(void)
 			nvl = scanf(" %d", &repTLng);
 			if ((repTLng >= 0) && (repTLng <= 2))
 			{
+				for (int i = 0; i < nbLgtB; i++)
+				{
+					Lang L = sLgtB[i];
+					_Bool OK = 1;
+					for(int j = 0; (j < dd.nAff) && OK; j++)
+					{
+						NAff A = dd.lSNA[j];
+						if ( (min(L.n1, L.n2) == A.nMin)
+							&& (max(L.n1, L.n2) == A.nMax))
+						{
+							sLgtB[i].o = A.a;
+							OK = 0;
+						}
+					}
+				}
 				sauveLanguettes(sLgtB, nbLgtB, repTLng);
 			}
 		}

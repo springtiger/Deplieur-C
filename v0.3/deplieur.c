@@ -24,18 +24,15 @@ int main(void)
 	int nvl;
 	
 	printf("%s", textes[0]); // Saisie nom fichier OBJ
-	//nvl = 
-	scanf(" %49s", dd.fichierOBJ);
+	nvl = scanf(" %49s", dd.fichierOBJ);
 
 	printf("%s", textes[1]); // Saisie échelle
-	//nvl = 
-	scanf("%f", &(dd.echelle));
+	nvl = scanf("%f", &(dd.echelle));
 
 	dd = chargeOBJ(dd);
 
 	printf("%s", textes[4]); // Saisie format page
-	//nvl = 
-	scanf("%d", &(dd.formatPage));
+	nvl = scanf("%d", &(dd.formatPage));
 
 	Vector2d limitePage = Vector2dSub(formats[dd.formatPage], marge);
 
@@ -48,22 +45,21 @@ int main(void)
 		dd.tailleNums = 11.0;
 
 	printf("%s", textes[8]); // hauteur
-	if ((scanf("%d", &(dd.hauteurLang))) < 1)
+	if ((nvl = scanf("%d", &(dd.hauteurLang))) < 1)
 		dd.hauteurLang = 10;
 
-	//_Bool(*dispo) = calloc(dd.nbFaces, sizeof * dispo);
 	dd.dispo = calloc(dd.nbFaces, sizeof * dd.dispo);
 	for (int i = 0; i < dd.nbFaces; i++)
 		dd.dispo[i] = 1;
 
-	dd.lSNA = calloc(dd.nbFaces * 3, sizeof * dd.lSNA);
+	dd.lSNA = calloc((size_t)dd.nbFaces * 3, sizeof * dd.lSNA);
 	dd.nAff = 0;
 
 	dd.page = calloc(dd.nbFaces, sizeof * dd.page);
 	dd.nbP = 0;
 	dd.sD = calloc(dd.nbFaces, sizeof * dd.sD); // depliage
 	dd.nbD = 0; // nb de faces dépliées
-	dd.lignes = calloc(dd.nbFaces * 3, sizeof * dd.lignes);
+	dd.lignes = calloc((size_t)dd.nbFaces * 3, sizeof * dd.lignes);
 	dd.nbL = 0;
 
 	printf("%s", textes[9]); // 1er triangle
@@ -159,7 +155,7 @@ int main(void)
 				ok = 0;
 		} while (ok);
 
-		Vector2d(*tmp) = calloc(nbTp * 3, sizeof * tmp);
+		Vector2d(*tmp) = calloc((size_t)nbTp * 3, sizeof * tmp);
 		for (int i = 0, k = 0; i < nbTp; i++)
 		{
 			for (int j = 0; j < 3; j++)

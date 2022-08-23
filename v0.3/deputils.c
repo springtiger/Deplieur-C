@@ -861,7 +861,7 @@ DonneesDep chargeOBJ(DonneesDep dd)
 			sscanf(ligneLue, "v %lf %lf %lf", &v[0], &v[1], &v[2]);
 			Vector3d s = { v[0] * dd.echelle, v[1] * dd.echelle, v[2] * dd.echelle };
 			Vector3d* tmp;
-			tmp = (Vector3d*)realloc(sommets, sizeof(Vector3d) * (dd.nbSommets + 1));
+			tmp = (Vector3d*)realloc(sommets, sizeof(Vector3d) * ((size_t)dd.nbSommets + 1));
 			if (tmp)
 			{
 				sommets = tmp;
@@ -887,8 +887,7 @@ DonneesDep chargeOBJ(DonneesDep dd)
 				}
 			}
 			fc[3] = gc;
-			size_t n = (dd.nbFaces + 1) * 4;
-			int* tmp = (int*)realloc(faces0, (size_t)sizeof(int) * n);
+			int* tmp = (int*)realloc(faces0, sizeof(int) * ((size_t)dd.nbFaces + 1) * 4);
 			if (tmp)
 			{
 				faces0 = tmp;
@@ -933,7 +932,7 @@ DonneesDep chargeOBJ(DonneesDep dd)
 	free(sommets);
 
 	// estCOP
-	dd.tCop = calloc(dd.nbFaces * 3, sizeof * dd.tCop);
+	dd.tCop = calloc((size_t)dd.nbFaces * 3, sizeof * dd.tCop);
 	calculeCop(dd.nbFaces, dd.voisins, dd.tCop, dd.v3d);
 	
 	return dd;
@@ -945,7 +944,7 @@ DonneesDep init_cairo(DonneesDep d)
 		formats[d.formatPage].x, formats[d.formatPage].y);
 	d.cr = cairo_create(d.surface);
 
-	cairo_select_font_face(d.cr, "Courier", CAIRO_FONT_SLANT_NORMAL,
+	cairo_select_font_face(d.cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
 		CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_set_font_size(d.cr, d.tailleNums);
 	cairo_set_line_width(d.cr, 1);
