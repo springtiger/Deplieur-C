@@ -1043,6 +1043,8 @@ static void pressed (GtkGestureClick *gesture, int n_press, double x, double y, 
       int orig2 = dd.sD[ln2].orig;
 
       if (dd.mode == MODE_ARETE) {
+        int chgt1 = -1;
+        int chgt2 = -1;
         if (ln1 > ln2) {
           for (int i = ln2; i < ln1; i++) {
             Depliage D = dd.sD[i+1];
@@ -1050,7 +1052,14 @@ static void pressed (GtkGestureClick *gesture, int n_press, double x, double y, 
             dd.sD[i].d = D.d;
             dd.sD[i].face = D.face;
 
-            dd.sD[i].orig = D.orig == face2 ? orig0 : D.orig;
+            if (D.orig == face2){
+              if (chgt1 == -1)
+                chgt1 = i;
+              else
+                chgt2 = i;
+              dd.sD[i].orig = orig0;
+            } else
+              dd.sD[i].orig = D.orig;
             dd.sD[i].page = D.page;
             dd.sD[i].piece = D.piece;
           }
@@ -1062,13 +1071,64 @@ static void pressed (GtkGestureClick *gesture, int n_press, double x, double y, 
             dd.sD[i].a = D.a;
             dd.sD[i].d = D.d;
             dd.sD[i].face = D.face;
-            dd.sD[i].orig = D.orig == face2 ? orig2 : D.orig;
+
+            if (D.orig == face2){
+              if (chgt1 == -1)
+                chgt1 = i;
+              else
+                chgt2 = i;
+              dd.sD[i].orig = orig2;
+            } else
+              dd.sD[i].orig = D.orig;
+
             dd.sD[i].page = D.page;
             dd.sD[i].piece = D.piece;
           }
           dd.sD[ln1+1].orig = face1;
           dd.sD[ln1+1].face = face2;
         }
+
+        // ReAgencement
+
+        int prem = min(chgt1, chgt2);
+        int premPiece = dd.sD[prem].piece;
+
+        int zero = -1;
+        for (int i = 0; i <= prem; i++)
+          if ((dd.sD[i].piece == premPiece) && (zero == -1)) {
+            zero = i;
+            break;
+          }
+
+        int dern = -1;
+        for (int i =prem; i < dd.nbD; i++)
+        if (dd.sD[i].piece > premPiece) {
+          dern = i-1;
+          break;
+        }
+        if (dern == -1)
+          dern = dd.nbD-1;
+
+        for (int i = prem; i <= dern; i++) {
+          _Bool aDeplacer = FALSE;
+          for (int j = zero; j < prem; j++) {
+            if (dd.sD[i].orig == dd.sD[j].face) {
+              aDeplacer = TRUE;
+              break;
+            }
+          }
+          if (aDeplacer) {
+            Depliage D = dd.sD[i];
+            for (int k = i-1; i >= prem; k--)
+              dd.sD[k+1] = dd.sD[k];
+            dd.sD[prem] = D;
+            prem++;
+          }
+        }
+
+
+
+
       } else if (dd.mode == MODE_LANG) {
         int L1 = -1, L2 = -1;
         for (int i = 0; i < dd.nbLgt; i++) {
