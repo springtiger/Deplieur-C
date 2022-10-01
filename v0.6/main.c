@@ -23,10 +23,10 @@
 //---------- CONSTANTES ----------
 #define APPLICATION_ID "com.github.gilboonet.deplieur"
 
-#ifndef WIN32
+//#ifndef WIN32
 	#define max(a,b) (a>=b?a:b)
 	#define min(a,b) (a<=b?a:b)
-#endif
+//#endif
 
 #define epsilon 0.0001
 #define MAX_TAMPON 100
@@ -319,13 +319,13 @@ double radToDeg(double radians) {
 double direction (Vector2d p1, Vector2d p2) {
 	return atan2(p2.y - p1.y, p2.x - p1.x);
 }
-int prec (int n) {	// prÃ©cÃ©dent dans triplet 0,1,2
+int prec (int n) {	// précédent dans triplet 0,1,2
 	return n > 0 ? n -1 : 2;
 }
 int suiv (int n) {	// suivant dans triplet 0,1,2
 	return n < 2 ? n + 1 : 0;
 }
-_Bool eqd(double d1, double d2) { // Ã©quivalence Ã  epsilon prÃ¨s entre 2 double
+_Bool eqd(double d1, double d2) { // équivalence à epsilon près entre 2 double
 	return fabs(d1 - d2) < epsilon;
 }
 double calcAngle (Vector2d a, Vector2d b, Vector2d c) {
@@ -637,6 +637,12 @@ DonneesDep chargeOBJ(DonneesDep dd) {
 	int* faces0 = NULL;
 	dd.nbFaces = 0;
 
+  for (int i = 0; i < strlen(dd.fichierOBJ); i++) {
+    if (dd.fichierOBJ[i] < ' ') {
+      dd.fichierOBJ[i] =  0;
+    }
+  }
+
 	//printf("FICHIER :%s\n", dd.fichierOBJ);
 	FILE* fs;
 	if (!(fs = fopen(dd.fichierOBJ, "r"))) {
@@ -807,7 +813,7 @@ DonneesDep chargeDonnees(DonneesDep dd) {
   } while (fi < length);
 //  printf("LU : Depliage %d etapes\n", dd.nbD);
 
-	// charge donnÃ©es languettes
+	// charge données languettes
 	dd.nbLgt = 0;
 	g_free(dd.sLgt);
 	dd.sLgt = NULL;
@@ -884,11 +890,11 @@ DonneesDep chargeDonnees(DonneesDep dd) {
 			int vi = dd.voisins[tc][0].nF == vc ? 0 : dd.voisins[tc][1].nF == vc ? 1 : 2;
 			Voisin v = dd.voisins[tc][vi];
 
-			// 1Â°) rapproche v2d[vc] de v2d[tc]
+			// 1°) rapproche v2d[vc] de v2d[tc]
 			Vector2d deltaV = Vector2dSub(dd.v2d[tc][vi], dd.v2d[vc][v.idx]);
 			for (int n = 0; n < 3; n++)
 				dd.v2d[vc][n] = Vector2dAdd(dd.v2d[vc][n], deltaV);
-			// 2Â°) tourne v2d[vc]
+			// 2°) tourne v2d[vc]
 			double a = calcAngle(dd.v2d[tc][vi], dd.v2d[tc][suiv(vi)], dd.v2d[vc][prec(v.idx)]);
 			for (int n = 0; n < 3; n++) {
 				dd.v2d[vc][n] = Vector2dRotation(dd.v2d[tc][vi], dd.v2d[vc][n], a);
@@ -922,7 +928,7 @@ DonneesDep chargeDonnees(DonneesDep dd) {
         if ((nA0.nMin == nMin) && (nA0.nMax == nMax))
           nA = nA0.a;
       }
-      if (nA == -1) { // nouveau nÂ°
+      if (nA == -1) { // nouveau n°
         nA = dd.nAff;
         NAff nA0 = {nMin, nMax, nA};
         dd.lSNA = g_realloc(dd.lSNA, sizeof(NAff) * (nA+1));
@@ -1025,9 +1031,9 @@ static void pressed (GtkGestureClick *gesture, int n_press, double x, double y, 
     }
     if (OK) {
       Ligne l = dd.lignes[dd.rects[trouve].id];
-      printf("clic sur arÃªte %d (%d <->  %d)\n", l.nA, l.n1, l.n2);
+      printf("clic sur arête %d (%d <->  %d)\n", l.nA, l.n1, l.n2);
       int ln1 = -1, ln2 =-1;
-      // recherche des lignes concernÃ©es
+      // recherche des lignes concernées
       int orig0 = 0;
       for (int i = 0; i < dd.nbD; i++) {
         Depliage D = dd.sD[i];
@@ -1425,7 +1431,7 @@ void ajouteTriangle(int id, Vector2d p1, Vector2d p2, Vector2d p3) {
   else
     P[1] = Vector2dNew(p3.x, p3.y);
 
-  // rech si dÃ©jÃ  prÃ©sent
+  // rech si déjà présent
   _Bool ok = FALSE;
   for (int i = 0; (i < dd.nbTris) && !ok; i++)
   {
@@ -1457,7 +1463,7 @@ static void on_changePage (GtkDialog *dialog,  int response, gpointer user_data)
   {
     printf("deplacement piece %d page %d vers %d\n", dd.idCourant, dd.pCourante, nPage);
 
-    if (nPage < dd.pCourante) { // dÃ©placement vers une page prÃ©cÃ©dente
+    if (nPage < dd.pCourante) { // déplacement vers une page précédente
       // sauver piece
       nsP = 0;
       for (int i = 0; i < dd.nbD; i++)
@@ -1492,7 +1498,7 @@ static void on_changePage (GtkDialog *dialog,  int response, gpointer user_data)
       printf("sauveOrig : %d\n", sauveOrig);
       printf("idxDeb %d idFin : %d\n", idxDeb, idxFin);
 
-      // sauver bloc entre la nouvelle page et la page de la piÃ¨ce
+      // sauver bloc entre la nouvelle page et la page de la pièce
       nsB = 0;
       for (int i = idxDeb; i < idxFin; i++) {
         Depliage D = dd.sD[i];
@@ -1511,7 +1517,7 @@ static void on_changePage (GtkDialog *dialog,  int response, gpointer user_data)
         nsB++;
       }
 
-      // dÃ©placer piece
+      // déplacer piece
       for (int i = 0; i < nsP; i++) {
         Depliage D = sauvePiece[i];
         int j = i + idxDeb;
@@ -1528,7 +1534,7 @@ static void on_changePage (GtkDialog *dialog,  int response, gpointer user_data)
         dd.sD[j].piece = D.piece;
       }
 
-      // dÃ©placer bloc
+      // déplacer bloc
       for (int i = 0; i < nsB; i++) {
         Depliage D = sauveBloc[i];
         int j = idxDeb + i + nsP;
@@ -1543,9 +1549,9 @@ static void on_changePage (GtkDialog *dialog,  int response, gpointer user_data)
         dd.sD[j].piece = D.piece;
       }
     } else {
-      // DÃ©placement vers une page suivante
+      // Déplacement vers une page suivante
       nsP = 0;
-      // sauver piÃ¨ce
+      // sauver pièce
       for (int i = 0; i < dd.nbD; i++) {
         Depliage D = dd.sD[i];
 
@@ -1573,7 +1579,7 @@ static void on_changePage (GtkDialog *dialog,  int response, gpointer user_data)
           nsP++;
         }
       }
-      // dÃ©placer bloc
+      // déplacer bloc
       idxDeb += nsP;
       for (int i = idxDeb; i < idxFin; i++) {
         int j = i - nsP;
@@ -1587,7 +1593,7 @@ static void on_changePage (GtkDialog *dialog,  int response, gpointer user_data)
         dd.sD[j].page = D.page;
         dd.sD[j].piece = D.piece;
       }
-      // dÃ©placer piÃ¨ce
+      // déplacer pièce
       for (int i = 0; i < nsP; i++) {
         Depliage D = sauvePiece[i];
         int j = idxFin - nsP + i;
@@ -1689,7 +1695,7 @@ void deplier() { // DEPLIAGE
   //  gtk_entry_buffer_get_text (gtk_entry_get_buffer(GTK_ENTRY(enEchelle))));
 
   //dd.echelle = 8;
-  if (dd.echelle == 0) { // si 0 : valeurs par dÃ©faut
+  if (dd.echelle == 0) { // si 0 : valeurs par défaut
     dd.echelle = 1;
     dd.formatPage = 4;
     dd.hauteurLang = 15;
@@ -1741,7 +1747,7 @@ void deplier() { // DEPLIAGE
 	dd.nbP = 0;
 	dd.nbPP = 0;
 	dd.sD = g_new(Depliage, dd.nbFaces); // depliage
-	dd.nbD = 0; // nb de faces dÃ©pliÃ©es
+	dd.nbD = 0; // nb de faces dépliées
 	dd.lignes = g_new(Ligne, dd.nbFaces * 3);
 	dd.nbL = 0;
 
@@ -1779,7 +1785,7 @@ void deplier() { // DEPLIAGE
 						dd.v2d[tc][suiv(vi)], dd.v2d[vc][prec(v.idx)]);
 					for (int i = 0; i < 3; i++)
 						dd.v2d[vc][i] = Vector2dRotation(dd.v2d[tc][vi], dd.v2d[vc][i], a);
-					// Teste dÃ©passement page
+					// Teste dépassement page
 					int nbTV = (nbTp + 1) * 3;
 					Vector2d(*tmp) = g_new(Vector2d, nbTV);
 					for (int i = 0; i < nbTp; i++)
@@ -1793,7 +1799,7 @@ void deplier() { // DEPLIAGE
 					Vector2d dV = Vector2dSub(vb[1], vb[0]);
 					if ((dV.x > limitePage.x) || (dV.y > limitePage.y))
 						ok = FALSE;
-					if (ok) // Teste collision avec la piÃ¨ce
+					if (ok) // Teste collision avec la pièce
 						for (int i = 0; (i < nbTp) && ok; i++)
 							if (overlap(dd.v2d[dd.page[i]], dd.v2d[vc]))
 								ok = FALSE;
@@ -1807,7 +1813,7 @@ void deplier() { // DEPLIAGE
 							dd.v2d[vc][i] = sauveV2dVoisin[i];
 				}
 			}
-			// Recherche prochaine face Ã  dÃ©plier
+			// Recherche prochaine face à déplier
 			tcn++;
 			if (tcn < nbTp) {
 				tc = dd.page[tcn];
@@ -1816,7 +1822,7 @@ void deplier() { // DEPLIAGE
 				ok = FALSE;
 		} while (ok);
 
-		// ajustement en bas Ã  gauche
+		// ajustement en bas à gauche
 		Vector2d(*tmp) = g_new(Vector2d, nbTp * 3);
 		for (int i = 0, k = 0; i < nbTp; i++)
 			for (int j = 0; j < 3; j++)
@@ -1829,7 +1835,7 @@ void deplier() { // DEPLIAGE
 				dd.v2d[dd.page[i]][j] =
 					Vector2dSub(dd.v2d[dd.page[i]][j], Vector2dSub(b[0], marge));
 
-		// rÃ©partition en lignes
+		// répartition en lignes
 		int nA;
 		for (int i = 0; i < nbTp; i++)
 			for (int j = 0; j < 3; j++) {
@@ -2011,7 +2017,7 @@ static void edpa_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 
   flags = GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL;
 
-  dialog = gtk_dialog_new_with_buttons("ParamÃ¨tres", GTK_WINDOW(win), flags,
+  dialog = gtk_dialog_new_with_buttons("Parametres", GTK_WINDOW(win), flags,
                                         "_OK", GTK_RESPONSE_ACCEPT,
                                         "_Annuler", GTK_RESPONSE_CANCEL,
                                         NULL);
@@ -2111,7 +2117,7 @@ static void recherche_activated (GtkEntry* self, gpointer user_data)
     if (ok)
       snprintf(chaineR, 100, "%d dans pages : %s", r, chaine);
     else
-      snprintf(chaineR, 100, "%d non trouvÃ©", r);
+      snprintf(chaineR, 100, "%d non trouve", r);
 
     puts(chaineR);
 
@@ -2141,11 +2147,11 @@ static void appConfigure (GApplication *app, gpointer user_data) {
   GSimpleAction *act[NB_ITEMS];
   GMenuItem *menu_item[NB_ITEMS];
   lmenu lm[NB_ITEMS] = {
-    {0, "new",  "Nouveau dÃ©pliage", "win.new", new_activated},
-    {0, "open", "Ouvrir dÃ©pliage", "win.open", open_activated},
-    {0, "yyyy", "RÃ©ouvrir dÃ©pliage", "win.yyyy", ropen_activated},
-    {1, "lobj", "charger modÃ¨le OBJ", "win.lobj", lobj_activated},
-    {1, "edpa", "Editer paramÃ¨tres", "win.edpa", edpa_activated},
+    {0, "new",  "Nouveau depliage", "win.new", new_activated},
+    {0, "open", "Ouvrir depliage", "win.open", open_activated},
+    {0, "yyyy", "Reouvrir depliage", "win.yyyy", ropen_activated},
+    {1, "lobj", "charger modele OBJ", "win.lobj", lobj_activated},
+    {1, "edpa", "Editer parametres", "win.edpa", edpa_activated},
     {2, "save", "Sauver", "win.save", save_activated},
     {2, "xxxx", "Sauver sous", "win.xxxx", sava_activated},
     {3, "expg", "Exporter gabarit", "win.expg", expg_activated},
@@ -2185,9 +2191,9 @@ static void appConfigure (GApplication *app, gpointer user_data) {
 
   box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_widget_add_css_class (box, "linked");
-  bModeP = gtk_toggle_button_new_with_label("PiÃ¨ce");
+  bModeP = gtk_toggle_button_new_with_label("Piece");
   gtk_box_append (GTK_BOX (box), bModeP);
-  bModeF = gtk_toggle_button_new_with_label("ArÃªte");
+  bModeF = gtk_toggle_button_new_with_label("Arete");
   gtk_box_append (GTK_BOX (box), bModeF);
   bModeL = gtk_toggle_button_new_with_label("Lang.");
   gtk_box_append (GTK_BOX (box), bModeL);
