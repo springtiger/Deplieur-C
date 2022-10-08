@@ -101,6 +101,7 @@ typedef struct { // paramètres courants
 typedef struct { // données de dépliage
 	char fichierOBJ[128];
 	float echelle;
+	float fz;
 	int formatPage;
 	int typeLang;
 	int premierTriangle;

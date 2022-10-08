@@ -4,6 +4,7 @@ Vector2d Vector2dNew(double x, double y);
 Vector2d Vector2dAdd (Vector2d v1, Vector2d v2);
 Vector2d Vector2dSub (Vector2d v1, Vector2d v2);
 Vector2d Vector2dDiv (Vector2d v, double d);
+Vector2d Vector2dMul (Vector2d v, double d);
 Vector2d centroid(Vector2d* pts);
 Vector2d milieu (Vector2d p1, Vector2d p2);
 Vector2d vPetit(Vector2d p1, Vector2d p2);
@@ -41,6 +42,7 @@ int suiv (int n);
 _Bool eqd(double d1, double d2);
 double calcAngle (Vector2d a, Vector2d b, Vector2d c);
 double angle (Vector2d p1, Vector2d p2);
+char* gtexte(int n);
 
 //---------- FONCTIONS APPLICATIVES ----------
 void trapeze (Vector2d * P, Vector2d p1, Vector2d p2, double s, double dt);
@@ -73,6 +75,7 @@ float sign (Vector2d, Vector2d, Vector2d);
 _Bool dansTriangle(Vector2d, Vector2d, Vector2d, Vector2d);
 
 //---------- UI ----------
+static void appConfigure (GApplication *app, gpointer user_data);
 static void redessine_page_courante();
 static void on_open_response (GtkDialog *dialog, int response, gpointer data);
 static void quit_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
@@ -85,6 +88,9 @@ static void save_activated(GSimpleAction *action, GVariant *parameter, gpointer 
 static void sava_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void expg_activated(GSimpleAction *action, GVariant *parameter, gpointer user_data);
 static void modeB_toggled(GtkToggleButton *bouton);
-static void appConfigure (GApplication *app, gpointer user_data);
+static void recherche_activated (GtkEntry* self, gpointer user_data);
+static void zoom_in_clicked (GtkEntry* self, gpointer user_data);
+static void zoom_out_clicked (GtkEntry* self, gpointer user_data);
+
 
 int main (int argc, char **argv);

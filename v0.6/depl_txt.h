@@ -2,7 +2,7 @@
 
 char const * const textes[] = {
   "Nom fichier  :",												// 0
-  "Echelle      :",												// 1
+  "Échelle      :",												// 1
   "Erreur ouverture fichier",							// 2
   "Erreur fermeture fichier",							// 3
   "Format A(0..5) :",											// 4
@@ -31,7 +31,12 @@ char const * const textes[] = {
 	"Afficher le n° des faces (O/N) ?",			// 27
 	"Pages",																// 28
 	"Impossible de sauvegarder les données",// 29
-	"n° languette à inverser ?" 						// 30
+	"n° languette à inverser ?", 						// 30
+	"Pièce",                                // 31
+	"Arête",                                // 32
+	"Lang.",                                // 33
+	"%d non trouvé",                        // 34
+	"Déplieur démo"                         // 35
 };
 
 char const OUI = 'O';
