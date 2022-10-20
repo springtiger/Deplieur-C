@@ -470,7 +470,9 @@ void calculeCop(int n, Voisin voisins[][3], Cop* tCop, Vector3d v3d[][3]) {
 		}
 }
 int sauveLanguettes(Lang * sL, int nbL, int mode) {
-	char * nomFichierDonnees = "donnees.lng";
+	//char * nomFichierDonnees = "donnees.lng";
+  const gchar *tmpdir = g_get_tmp_dir ();
+	char * nomFichierDonnees = g_build_filename(tmpdir, "donnees.lng", (gchar *) 0);
 	FILE * fichierDonnees;
 	if (!(fichierDonnees = fopen(nomFichierDonnees, "w"))) {
 		perror(textes[29]);
@@ -500,7 +502,9 @@ int sauveLanguettes(Lang * sL, int nbL, int mode) {
 	return 0;
 }
 int sauveDonnees(DonneesDep d) {
-	char * nomFichierDonnees = "donnees.dep";
+	//char * nomFichierDonnees = "donnees.dep";
+  const gchar *tmpdir = g_get_tmp_dir ();
+	char * nomFichierDonnees = g_build_filename(tmpdir, "donnees.dep", (gchar *) 0);
 	FILE * fd;
 	int rc;
 
@@ -735,7 +739,9 @@ int retourneLigne(char *contenu, char *tampon, int dep) {
   }
 }
 DonneesDep chargeDonnees(DonneesDep dd) {
-	char* nomFichierDonnees = "donnees.dep";
+	//char* nomFichierDonnees = "donnees.dep";
+  const gchar *tmpdir = g_get_tmp_dir ();
+	char * nomFichierDonnees = g_build_filename(tmpdir, "donnees.dep", (gchar *) 0);
 
 	GFile *file = g_file_new_for_path(nomFichierDonnees);
 	//printf("nom fichier donnees : %s\n", g_file_get_path(file));
@@ -823,7 +829,9 @@ DonneesDep chargeDonnees(DonneesDep dd) {
 
 	int d3;
 	int nvl;
-	char* nomFichierLanguettes = "donnees.lng";
+	//char* nomFichierLanguettes = "donnees.lng";
+  char * nomFichierLanguettes = g_build_filename(tmpdir, "donnees.lng", (gchar *) 0);
+
 	FILE * fd = fopen(nomFichierLanguettes, "r");
 	if (fd) {
 		while ((nvl = fscanf(fd, "%d", &d0)) > 0) {
@@ -1034,9 +1042,9 @@ static void pressed (GtkGestureClick *gesture, int n_press, double x, double y, 
     if (OK) {
       Ligne l = dd.lignes[dd.rects[trouve].id];
       //printf("clic sur arête %d (%d <->  %d)\n", l.nA, l.n1, l.n2);
-      int ln1 = -1, ln2 =-1;
+      int ln0 = -1, ln1 = -1, ln2 = -1, ln3 = -1, ln4 = -1;
       // recherche des lignes concernées
-      int orig0 = 0;
+      int orig0;
       for (int i = 0; i < dd.nbD; i++) {
         Depliage D = dd.sD[i];
         if (D.face == l.n1)
@@ -1048,94 +1056,90 @@ static void pressed (GtkGestureClick *gesture, int n_press, double x, double y, 
       }
       int face1 = dd.sD[ln1].face;
       int face2 = dd.sD[ln2].face;
-      int orig2 = dd.sD[ln2].orig;
+      //int orig2 = dd.sD[ln2].orig;
 
       if (dd.mode == MODE_ARETE) {
-        int chgt1 = -1;
-        int chgt2 = -1;
-        if (ln1 > ln2) {
-          for (int i = ln2; i < ln1; i++) {
-            Depliage D = dd.sD[i+1];
-            dd.sD[i].a = D.a;
-            dd.sD[i].d = D.d;
-            dd.sD[i].face = D.face;
-
-            if (D.orig == face2){
-              if (chgt1 == -1)
-                chgt1 = i;
-              else
-                chgt2 = i;
-              dd.sD[i].orig = orig0;
-            } else
-              dd.sD[i].orig = D.orig;
-            dd.sD[i].page = D.page;
-            dd.sD[i].piece = D.piece;
+        int piece1 = dd.sD[ln1].piece;
+        int piece2 = dd.sD[ln2].piece;
+        int page1 = dd.sD[ln1].page;
+        if (dd.sD[ln1].piece == piece2) {
+          if (ln2 > ln1) {
+            dd.sD[ln2].orig = face1;
           }
-          dd.sD[ln1].orig = face1;
-          dd.sD[ln1].face = face2;
         } else {
-          for (int i = ln2; i > ln1; i--) {
-            Depliage D = dd.sD[i-1];
-            dd.sD[i].a = D.a;
-            dd.sD[i].d = D.d;
-            dd.sD[i].face = D.face;
-
-            if (D.orig == face2){
-              if (chgt1 == -1)
-                chgt1 = i;
-              else
-                chgt2 = i;
-              dd.sD[i].orig = orig2;
-            } else
-              dd.sD[i].orig = D.orig;
-
-            dd.sD[i].page = D.page;
-            dd.sD[i].piece = D.piece;
-          }
-          dd.sD[ln1+1].orig = face1;
-          dd.sD[ln1+1].face = face2;
-        }
-
-        // ReAgencement
-
-        int prem = min(chgt1, chgt2);
-        int premPiece = dd.sD[prem].piece;
-
-        int zero = -1;
-        for (int i = 0; i <= prem; i++)
-          if ((dd.sD[i].piece == premPiece) && (zero == -1)) {
-            zero = i;
-            break;
-          }
-
-        int dern = -1;
-        for (int i =prem; i < dd.nbD; i++)
-        if (dd.sD[i].piece > premPiece) {
-          dern = i-1;
-          break;
-        }
-        if (dern == -1)
-          dern = dd.nbD-1;
-
-        for (int i = prem; i <= dern; i++) {
-          _Bool aDeplacer = FALSE;
-          for (int j = zero; j < prem; j++) {
-            if (dd.sD[i].orig == dd.sD[j].face) {
-              aDeplacer = TRUE;
-              break;
+          for (int i = 0; i < dd.nbD; i++) {
+            if (dd.sD[i].piece == piece2) {
+              if (ln0 == -1)
+                ln0 = i;
+              ln3 = i;
+            } else if (dd.sD[i].piece == piece1) {
+              ln4 = i;
             }
           }
-          if (aDeplacer) {
-            Depliage D = dd.sD[i];
-            for (int k = i-1; i >= prem; k--)
-              dd.sD[k+1] = dd.sD[k];
-            dd.sD[prem] = D;
-            prem++;
+
+          printf("ln1:%d ln0:%d ln2:%d ln3:%d\n", ln1, ln0, ln2, ln3);
+
+          int nbB = ln2 - ln0;
+          int B[nbB];
+          int n = 0;
+          for (int i = ln2-1; i >= ln0; i--)
+            B[n++] = dd.sD[i].face;
+
+          int maxSP = ln3 - ln0;
+          Depliage SP[maxSP];
+          SP[0].orig = face1;
+          SP[0].face = face2;
+          SP[0].piece = piece1;
+          SP[0].page = page1;
+          int nbSP = 1;
+          int sB = nbB;
+
+          do {
+            for (int i = 0; i < nbB; i++) {
+              int fb = B[i];
+              for (int j = nbSP-1; j>=0; j--) {
+                int fj = SP[j].face;
+                if ((fb == dd.voisins[fj][0].nF)||(fb == dd.voisins[fj][1].nF)||(fb == dd.voisins[fj][2].nF)) {
+                  SP[nbSP].orig = fj;
+                  SP[nbSP].face = fb;
+                  SP[nbSP].piece = piece1;
+                  SP[nbSP].page = page1;
+                  nbSP++;
+
+                  for (int k = i+1; k < nbB; k++)
+                    B[k-1] = B[k];
+                  nbB--;
+                  break;
+                }
+              }
+              if (sB != nbB) {
+                sB = nbB;
+                break;
+              }
+            }
+          }
+          while (nbB > 0);
+
+          for (int i = 0; i < nbSP; i++)
+            printf("%d : %d %d, %d\n", i, SP[i].orig, SP[i].face, SP[i].piece);
+
+          for (int i = ln2+1; i <= ln3; i++)
+            SP[nbSP++] = dd.sD[i];
+
+          if (ln1 < ln2) {
+            for (int i = ln4+1; i< ln0; i++)
+              dd.sD[i+ln3-(ln0-1)] = dd.sD[i];
+            for (int i = 0; i < nbSP; i++)
+              dd.sD[ln4+1 + i] = SP[i];
+          } else {
+            for (int i = ln3+1; i <= ln1; i++)
+              dd.sD[i+ln0 - (ln3+1)] = dd.sD[i];
+            for (int i = 0; i < nbSP; i++) {
+              dd.sD[i+ln3-ln1] = SP[i];
+            }
+            //}
           }
         }
-
-
-
 
       } else if (dd.mode == MODE_LANG) {
         int L1 = -1, L2 = -1;
@@ -1230,10 +1234,14 @@ static void exportePDF() {
 	cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 	cairo_set_font_size(cr, dd.tailleNums);
 	cairo_set_line_width(cr, 1);
-///
-  int typeL;
 
+  int typeL;
   int nPage = 0;
+
+  int numsX[dd.nbL];
+  for (int i = 0; i < dd.nbL; i++) numsX[i] = -1;
+  int nX = 0;
+  int nAA;
   for (int i = 0; i < dd.nbL; i++) {
     Ligne l = dd.lignes[i];
     if (l.id > -1) {
@@ -1244,7 +1252,13 @@ static void exportePDF() {
       double cop = dd.tCop[(l.n1 * 3) + l.i1].cop;
       _Bool cop0 = fabs(cop) < 10e-7;
       if (l.nb == 1) {
-        afficheNum(cr, l.nA, l.p1, l.p2, C_NOIR);
+        nAA = numsX[l.nA];
+        if (nAA == -1) {
+            nAA = nX++;
+          numsX[l.nA] = nAA;
+        }
+        //afficheNum(cr, l.nA, l.p1, l.p2, C_NOIR);
+        afficheNum(cr, nAA, l.p1, l.p2, C_NOIR);
         if (dd.nbLgt == 0)
           typeL = L_COUPE;
         else {
@@ -1259,22 +1273,19 @@ static void exportePDF() {
         }
       } else
         typeL = cop0 ? L_PLI_C : (cop < 0) ? L_PLI_M : L_PLI_V;
-      // affichage ligne
-      if (dd.idCourant > -1){
-        cairo_set_source_rgb(cr, 1,1,1);
-        cairo_move_to(cr, dd.coords.x, dd.coords.y);
-        cairo_arc(cr, dd.coords.x, dd.coords.y, 3, 0, 2 * pi);
-        cairo_stroke(cr);
-      }
-      cairo_set_line_width(cr, dd.idCourant == l.nPP ? 2 : 1);
       faitLigne(cr, l.p1, l.p2, typeL, dd.hauteurLang);
       if ((typeL == L_COUPE) || (typeL == L_LGT_M) || (typeL == L_LGT_V)) {
-        afficheNum(cr, l.nA, l.p1, l.p2, C_NOIR);
+        if (l.nb != 1) {
+          nAA = numsX[l.nA];
+          if (nAA == -1) {
+              nAA = nX++;
+            numsX[l.nA] = nAA;
+          }
+          afficheNum(cr, nAA, l.p1, l.p2, C_NOIR);
+        }
       }
     }
   }
-///
-
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 }
@@ -1726,11 +1737,17 @@ void deplier() { // DEPLIAGE
   //char * tampon = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(cbFormat));
   //dd.formatPage = formatPageID(tampon);
   //dd.formatPage = 4;
-	Vector2d limitePage = Vector2dSub(formats[dd.formatPage], marge);
+  Vector2d limitePage;
+  if (dd.fz != 1) {
+    limitePage = Vector2dSub(Vector2dMul(formats[dd.formatPage], dd.fz), Vector2dMul(marge, dd.fz));
+  } else {
+    limitePage = Vector2dSub(formats[dd.formatPage], marge);
+  }
 
   //tampon = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(cbLang));
   //dd.typeLang = tampon[0] == '1' ? 1 : tampon[0] == '2' ? 2 : 0;
   //dd.typeLang = 1;
+  dd.typeLang = 0;
 
 	//dd.tailleNums = atof(
   //  gtk_entry_buffer_get_text (gtk_entry_get_buffer(GTK_ENTRY(enTailleN))));
