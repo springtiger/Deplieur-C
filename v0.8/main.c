@@ -2858,17 +2858,21 @@ static void modeB_toggled(GtkToggleButton* bouton, gpointer data) {
 static void zoom_in_clicked(GSimpleAction *a, GVariant *p, gpointer data) {
   DonneesDep* d = (DonneesDep*)data;
 
-  //printf("ECHELLE :%2.2f\n", d->fz);
-  d->fz = (float)(d->fz * 1.25);
-  //printf("ECHELLE :%2.2f\n", d->fz);
-  //rendu(d, gtk_notebook_get_current_page(GTK_NOTEBOOK(d->doc)));
-  rendu(d, d->pCourante);
+  if (d->echelle > 0) {
+    //printf("ECHELLE :%2.2f\n", d->fz);
+    d->fz = (float)(d->fz * 1.25);
+    //printf("ECHELLE :%2.2f\n", d->fz);
+    //rendu(d, gtk_notebook_get_current_page(GTK_NOTEBOOK(d->doc)));
+    rendu(d, d->pCourante);
+  }
 }
 static void zoom_out_clicked(GSimpleAction* a, GVariant* p, gpointer data) {
   DonneesDep* d = (DonneesDep*)data;
 
-  d->fz = (float)(d->fz / 1.25);
-  rendu(d, d->pCourante);
+  if (d->echelle > 0) {
+    d->fz = (float)(d->fz / 1.25);
+    rendu(d, d->pCourante);
+  }
 }
 static void activated_rech(GtkEntry* self, gpointer data) {
   DonneesDep* d = (DonneesDep*)data;
@@ -2917,10 +2921,12 @@ static void activated_rech(GtkEntry* self, gpointer data) {
 }
 static void lanceAction(gpointer data, enum tAction typeAction, int id) {
   DonneesDep* d = (DonneesDep*)data;
-  d->id_action = id;
-  switch (typeAction) {
-  case TA_TOURNE: tournePiece(NULL, data); break;
-  case TA_DEPLACE: deplacePiece(NULL, data); break;
+  if (d->echelle > 0) {
+    d->id_action = id;
+    switch (typeAction) {
+    case TA_TOURNE: tournePiece(NULL, data); break;
+    case TA_DEPLACE: deplacePiece(NULL, data); break;
+    }
   }
 }
 static void rotG(GSimpleAction* a, GVariant* p, gpointer d) { lanceAction(d, TA_TOURNE, R_GAUCHE); }
@@ -3008,9 +3014,8 @@ static void appConfigure(GApplication* app, gpointer data) {
   //gtk_window_set_default_size (GTK_WINDOW (win), 1000, 1000); // Cr30
   gtk_window_set_resizable(GTK_WINDOW(win), TRUE);
 
-  //  void creeMenus() {
       //--------------- CREATION DES MENUS ----------------------
-        //#define NB_SECTIONS  5
+  //#define NB_SECTIONS  5
   GMenu* menu = g_menu_new();
   GMenu* section[5];
   GSimpleAction* act;
