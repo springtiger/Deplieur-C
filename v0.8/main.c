@@ -500,7 +500,7 @@ int sauveLanguettes(Lang *sL, int nbL, int mode, char *nomFichier) {
   int i, v;
 
   //puts("DEBUT SAUVE LANGUETTES");
-  nomFichierDonnees = (nomFichier[0] == '\0') 
+  nomFichierDonnees = (nomFichier[0] == '\0')
     ? g_build_filename(g_get_tmp_dir(), "donnees.lng", (gchar*)0)
     : nomFichier;
 
@@ -2026,7 +2026,7 @@ void ajouteTriangle(DonneesDep* d, int id, Vector2d p1, Vector2d p2, Vector2d p3
 static void on_changePage(GObject* source, GAsyncResult* result, void* data) {
   GtkAlertDialog *dialog = GTK_ALERT_DIALOG(source);
   DonneesDep *d = (DonneesDep*)data;
-  int nPage = d->pCourante;
+  int nPage = d->pCourante, nPVerif;
   Depliage *sauvePiece = NULL, *sauveBloc = NULL;
   Depliage D, s;
   int nsP, nsB;
@@ -2192,14 +2192,33 @@ static void on_changePage(GObject* source, GAsyncResult* result, void* data) {
     sauveDonnees(d);
     d->pPrecedente = -1;
     d->idCourant = -1;
-    rendu(d, nPage);
+
+    // verif depassement
+    nPVerif = -1;
+    for (i = 0; i < d->nbD; i++) {
+      if (d->sD[i].page > nPVerif)
+        nPVerif = d->sD[i].page;
+    }
+    nPage = min(nPVerif, nPage);
+
     d->pCourante = nPage;
+    rendu(d, nPage);
+    // ATTN d->pCourante = nPage;
     //redessine_page_courante(d);
   }
   else {
     g_object_unref(dialog);
     d->pPrecedente = -1;
     d->idCourant = -1;
+
+    // verif depassement
+    nPVerif = -1;
+    for (i = 0; i < d->nbD; i++) {
+      if (d->sD[i].page > nPVerif)
+        nPVerif = d->sD[i].page;
+    }
+    nPage = min(nPVerif, nPage);
+
     d->pCourante = nPage;
     rendu(d, nPage);
     //redessine_page_courante(d);
@@ -2264,9 +2283,11 @@ void rendu(DonneesDep* d, int pc) {
       if (i > 0)
         gtk_toggle_button_set_group(GTK_TOGGLE_BUTTON(d->bPage[i]), GTK_TOGGLE_BUTTON(d->bPage[i - 1]));
     }
-    //d->pCourante = pc;
-    if (pc > d->nbPages)
-      pc = d->nbPages - 1;
+    d->pCourante = pc;
+    pc = min(pc, d->sD[d->nbD-1].page);
+    if (d->pCourante != pc)
+      d->pCourante = -1;
+
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(d->bPage[pc]), TRUE);
   }
   else {
@@ -2811,7 +2832,7 @@ static void activated_expg(GSimpleAction *action, GVariant *parameter, gpointer 
   filtre = gtk_file_filter_new();
   gtk_file_filter_add_suffix(filtre, "pdf");
   gtk_file_filter_set_name(filtre, "PDF Portable Document Format");
-  
+
   filtres = g_list_store_new(GTK_TYPE_FILE_FILTER);
   g_list_store_append(filtres, filtre);
   gtk_file_dialog_set_filters(dialog, G_LIST_MODEL(filtres));
@@ -3062,10 +3083,8 @@ static void appConfigure(GApplication* app, gpointer data) {
 
   sBtns Btns[] = {
     // ZOOM
-    //{"zoom-in-symbolic", 40, "zoomIn", "win.zoomIn", zoom_in_clicked, "", NULL, "", NULL},
-    {"list-add-symbolic", 40, "zoomIn", "win.zoomIn", (void*)zoom_in_clicked, "", NULL, "", NULL},
-    //{"zoom-out-symbolic", 41, "zoomOut", "win.zoomOut", zoom_out_clicked, "", NULL, "", NULL},
-    {"list-remove-symbolic", 41, "zoomOut", "win.zoomOut", (void*)zoom_out_clicked, "", NULL, "", NULL},
+    {"zoom-in-symbolic", 40, "zoomIn", "win.zoomIn", (void*)zoom_in_clicked, "", NULL, "", NULL},
+    {"zoom-out-symbolic", 41, "zoomOut", "win.zoomOut", (void*)zoom_out_clicked, "", NULL, "", NULL},
     // ROTATION
     {"object-rotate-left-symbolic", 42, "rotateLeft5", "win.rotateLeft", (void*)rotG5, "rotateLeft45", (void*)rotG45, "rotateLeft", (void*)rotG},
     {"object-rotate-right-symbolic", 43, "rotateRight5", "win.rotateRight", (void*)rotD5, "rotateRight45", (void*)rotD45, "rotateRight", (void*)rotD},
